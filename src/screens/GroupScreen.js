@@ -420,7 +420,7 @@ const GroupScreen = () => {
         </View>
 
         <View style={styles.membersSection}>
-          <Text style={styles.sectionTitle}>Members ({members.length})</Text>
+          <Text style={styles.centeredSectionTitle}>Members ({members.length})</Text>
           <FlatList
             data={members}
             renderItem={renderMemberItem}
@@ -484,6 +484,12 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     fontFamily: "monospace",
     color: "#000",
+    backgroundColor: "rgba(245, 222, 179, 0.9)",
+    paddingVertical: 5,
+    paddingHorizontal: 15,
+    alignSelf: "center",
+    borderWidth: 3,
+    borderColor: "#B87333",
   },
   questionContainer: {
     backgroundColor: "rgba(255, 255, 255, 0.85)",
@@ -499,6 +505,26 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     fontFamily: "monospace",
     color: "#000",
+    backgroundColor: "rgba(245, 222, 179, 0.9)", // Wheat color with opacity
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    alignSelf: "flex-start", // Default alignment
+    borderWidth: 2,
+    borderColor: "#B87333", // Bronze border to match other elements
+  },
+  centeredSectionTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    marginBottom: 15,
+    fontFamily: "monospace",
+    color: "#000",
+    backgroundColor: "rgba(245, 222, 179, 0.9)",
+    paddingVertical: 5, 
+    paddingHorizontal: 10,
+    alignSelf: "center", // Center in the screen
+    borderWidth: 2,
+    borderColor: "#B87333",
+    textAlign: "center",
   },
   progressContainer: {
     flexDirection: "row",
