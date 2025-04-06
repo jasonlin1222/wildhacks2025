@@ -279,6 +279,7 @@ export default function OnboardingSurveyScreen({ navigation }) {
 
   // Handle next button click
   // Handle next button click
+  // Handle next button click
   const handleNext = async () => {
     // If we haven't completed all primary questions yet
     if (currentStep < surveyQuestions.length - 1) {
@@ -303,6 +304,9 @@ export default function OnboardingSurveyScreen({ navigation }) {
       const primaryType = determinePrimaryType(selectedAnswers);
       console.log("Final primary type:", primaryType);
       
+      // Map the primary type to personality category
+      const personalityCategory = mapPrimaryTypeToCategory(primaryType);
+      
       // Make sure we have a valid secondary question response
       const secondaryQuestionId = secondaryQuestions[primaryType]?.id;
       if (!secondaryQuestionId || !selectedAnswers[secondaryQuestionId]) {
@@ -316,11 +320,12 @@ export default function OnboardingSurveyScreen({ navigation }) {
       const secondaryAnswer = selectedAnswers[secondaryQuestionId];
       console.log("Secondary answer:", secondaryAnswer);
       const plantMatch = secondaryAnswer; // The ID of the selected secondary option is the plant match
-  
-      // Instead of saving to Firebase here, navigate to PlantAssignment
+
+      // Navigate to PlantAssignment with both plantMatch and personalityCategory
       navigation.navigate("PlantAssignment", { 
         plantMatch: plantMatch,
-        surveyAnswers: selectedAnswers
+        surveyAnswers: selectedAnswers,
+        personalityCategory: personalityCategory
       });
     } catch (error) {
       console.error("Error in handleNext:", error);
@@ -328,6 +333,20 @@ export default function OnboardingSurveyScreen({ navigation }) {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Add this helper function to map primary type letters to personality category names
+  const mapPrimaryTypeToCategory = (primaryType) => {
+    const categoryMap = {
+      "A": "mysterious",
+      "B": "intellectual",
+      "C": "nurturing",
+      "D": "social",
+      "E": "adventurous",
+      "F": "artistic"
+    };
+    
+    return categoryMap[primaryType] || "";
   };
 
   // Handle back button
