@@ -19,21 +19,22 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const [userProfile, setUserProfile] = useState(null);
 
-  async function signup(email, password) {
+  async function signup(email, password, additionalData = {}) {
     // Create Firebase authentication user
     const userCredential = await createUserWithEmailAndPassword(
       auth,
       email,
       password
     );
-
-    // Initial empty profile for the user
+  
+    // Include any additional data in the initial profile
     await setDoc(doc(db, "users", userCredential.user.uid), {
       email,
       createdAt: new Date(),
       surveyCompleted: false,
+      ...additionalData
     });
-
+  
     return userCredential.user;
   }
 
