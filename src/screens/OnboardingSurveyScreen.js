@@ -221,11 +221,9 @@ export default function OnboardingSurveyScreen({ navigation }) {
       F: 0, // Artistic/Creative
     };
     
-    // Count each answer type
+    // Count each answer type - FIXED: removed the conditional check
     Object.values(answers).forEach(answer => {
-      if (counts[answer]) {
-        counts[answer]++;
-      }
+      counts[answer]++; // This will increment even if it's currently 0
     });
     
     // Find the most common answer type
@@ -243,10 +241,14 @@ export default function OnboardingSurveyScreen({ navigation }) {
   };
 
   // Handle option selection
+  // Replace your current handleSelect function with this one
   const handleSelect = (optionId) => {
+    // Get the current question (primary or secondary)
+    const currentQuestion = getCurrentQuestion();
+    
     setSelectedAnswers({
       ...selectedAnswers,
-      [surveyQuestions[currentStep].id]: optionId
+      [currentQuestion.id]: optionId
     });
   };
 
@@ -264,44 +266,18 @@ export default function OnboardingSurveyScreen({ navigation }) {
     if (isSecondaryQuestion()) {
       // Get the primary personality type to determine the secondary question
       const primaryType = determinePrimaryType(selectedAnswers);
-      return secondaryQuestions[primaryType];
+      // Make sure we have a valid secondary question for this primary type
+      if (primaryType && secondaryQuestions[primaryType]) {
+        return secondaryQuestions[primaryType];
+      }
+      // Fallback to the last primary question if we don't have a valid secondary question
+      return surveyQuestions[surveyQuestions.length - 1];
     }
     
     return surveyQuestions[currentStep];
   };
 
-  // Save results to Firebase
-  const saveResultsToFirebase = async (plantMatch) => {
-    try {
-      setLoading(true);
-      const currentUser = auth.currentUser;
-      
-      if (!currentUser) {
-        console.error("No user is signed in");
-        return;
-      }
-      
-      // Create a reference to the user's document
-      const userRef = doc(db, "users", currentUser.uid);
-      
-      // Update the user's document with the plant match
-      await setDoc(userRef, {
-        plantMatch: plantMatch,
-        surveyAnswers: selectedAnswers,
-        completedSurvey: true,
-        updatedAt: new Date()
-      }, { merge: true });
-      
-      console.log("Survey results saved successfully");
-      return true;
-    } catch (error) {
-      console.error("Error saving survey results:", error);
-      return false;
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // Handle next button click
   // Handle next button click
   const handleNext = async () => {
     // If we haven't completed all primary questions yet
@@ -314,6 +290,7 @@ export default function OnboardingSurveyScreen({ navigation }) {
     if (!isSecondaryQuestion()) {
       // Determine primary type and move to secondary question
       const primaryType = determinePrimaryType(selectedAnswers);
+      console.log("Moving to secondary question for type:", primaryType);
       setCurrentStep(10); // Set to secondary question
       return;
     }
@@ -321,19 +298,35 @@ export default function OnboardingSurveyScreen({ navigation }) {
     // We've completed both primary and secondary questions
     setLoading(true);
     
-    // Determine the final plant match
-    const primaryType = determinePrimaryType(selectedAnswers);
-    const secondaryAnswer = selectedAnswers[secondaryQuestions[primaryType].id];
-    const plantMatch = secondaryAnswer; // The ID of the selected secondary option is the plant match
-
-    // Save results to Firebase
-    const success = await saveResultsToFirebase(plantMatch);
-    
-    if (success) {
-      // Navigate to the next screen with the plant match
-      navigation.navigate("CreateAccount", { 
-        plantMatch: plantMatch
+    try {
+      // Determine the final plant match
+      const primaryType = determinePrimaryType(selectedAnswers);
+      console.log("Final primary type:", primaryType);
+      
+      // Make sure we have a valid secondary question response
+      const secondaryQuestionId = secondaryQuestions[primaryType]?.id;
+      if (!secondaryQuestionId || !selectedAnswers[secondaryQuestionId]) {
+        console.error("Missing secondary answer for type:", primaryType);
+        console.log("Current selected answers:", selectedAnswers);
+        alert("Unable to complete survey. Please try again.");
+        setLoading(false);
+        return;
+      }
+      
+      const secondaryAnswer = selectedAnswers[secondaryQuestionId];
+      console.log("Secondary answer:", secondaryAnswer);
+      const plantMatch = secondaryAnswer; // The ID of the selected secondary option is the plant match
+  
+      // Instead of saving to Firebase here, navigate to PlantAssignment
+      navigation.navigate("PlantAssignment", { 
+        plantMatch: plantMatch,
+        surveyAnswers: selectedAnswers
       });
+    } catch (error) {
+      console.error("Error in handleNext:", error);
+      alert("An error occurred. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
 

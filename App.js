@@ -10,6 +10,7 @@ import LoginScreen from "./src/screens/LoginScreen";
 import OnboardingSurveyScreen from "./src/screens/OnboardingSurveyScreen";
 import CreateAccountScreen from "./src/screens/CreateAccountScreen";
 import HomeScreen from "./src/screens/HomeScreen";
+import PlantAssignmentScreen from "./src/screens/PlantAssignmentScreen";
 
 // Import auth context
 import { AuthProvider, useAuth } from "./src/context/AuthContext";
@@ -33,6 +34,7 @@ function PublicStack() {
         component={OnboardingSurveyScreen}
       />
       <Stack.Screen name="CreateAccount" component={CreateAccountScreen} />
+      <Stack.Screen name="PlantAssignment" component={PlantAssignmentScreen} />
     </Stack.Navigator>
   );
 }
