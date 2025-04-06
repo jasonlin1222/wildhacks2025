@@ -26,6 +26,18 @@ const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
 // Import the background image
 const pixelSkyBackground = require("./pixel-sky.png");
+// Import all possible backgrounds
+const backgroundImages = [
+  pixelSkyBackground, // Default/fallback (index 0)
+  require("./gardenbackground/1.png"), // Background 1
+  require("./gardenbackground/2.png"), // Background 2
+  require("./gardenbackground/3.png"), // Background 3
+  require("./gardenbackground/4.png"), // Background 4
+  require("./gardenbackground/5.png"), // Background 5
+  require("./gardenbackground/6.png"), // Background 6
+];
+// Number of available garden backgrounds (should match CreateGroupScreen)
+const TOTAL_BACKGROUNDS = 6;
 const grassGif = require("./Grass.gif");
 
 const TripPlannerScreen = ({ navigation, route }) => {
@@ -42,6 +54,7 @@ const TripPlannerScreen = ({ navigation, route }) => {
   const [sideQuestPoints, setSideQuestPoints] = useState(0);
   const [allQuestsCompleted, setAllQuestsCompleted] = useState(false);
   const [personalityCategory, setPersonalityCategory] = useState(null);
+  const [groupBackground, setGroupBackground] = useState(pixelSkyBackground);
   // Get the group ID from route params
   const groupId = route.params?.groupId;
 
@@ -89,6 +102,35 @@ const TripPlannerScreen = ({ navigation, route }) => {
 
     fetchUserPersonality();
   }, []);
+
+  useEffect(() => {
+    const fetchGroupBackground = async () => {
+      // Only proceed if we have a groupId
+      if (groupId) {
+        try {
+          const db = getFirestore();
+          const groupDocRef = doc(db, "groups", groupId);
+          const groupDoc = await getDoc(groupDocRef);
+  
+          if (groupDoc.exists()) {
+            const groupData = groupDoc.data();
+            if (groupData.backgroundId && groupData.backgroundId >= 1 && 
+                groupData.backgroundId <= TOTAL_BACKGROUNDS) {
+              // Use the backgroundId to get the correct background
+              // The array is 0-indexed, but backgroundId starts at 1
+              setGroupBackground(backgroundImages[groupData.backgroundId]);
+            }
+          } else {
+            console.log("Group document does not exist");
+          }
+        } catch (error) {
+          console.error("Error fetching group data:", error);
+        }
+      }
+    };
+  
+    fetchGroupBackground();
+  }, [groupId]);
 
   useEffect(() => {
     (async () => {
@@ -556,7 +598,7 @@ const TripPlannerScreen = ({ navigation, route }) => {
   if (loading) {
     return (
       <ImageBackground
-        source={pixelSkyBackground}
+        source={groupBackground}
         style={styles.backgroundImage}
       >
         <SafeAreaView style={styles.container}>
@@ -572,7 +614,7 @@ const TripPlannerScreen = ({ navigation, route }) => {
   if (errorMsg) {
     return (
       <ImageBackground
-        source={pixelSkyBackground}
+        source={groupBackground}
         style={styles.backgroundImage}
       >
         <SafeAreaView style={styles.container}>
@@ -586,7 +628,7 @@ const TripPlannerScreen = ({ navigation, route }) => {
   }
 
   return (
-    <ImageBackground source={pixelSkyBackground} style={styles.backgroundImage}>
+    <ImageBackground source={groupBackground} style={styles.backgroundImage}>
       <SafeAreaView style={styles.container}>
         <ScrollView style={styles.scrollContent}>
           {/* Map View */}
