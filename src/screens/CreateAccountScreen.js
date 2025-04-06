@@ -1,219 +1,155 @@
-import React, { useState } from "react";
+import React from "react";
 import {
   StyleSheet,
   View,
   Text,
-  TextInput,
   TouchableOpacity,
-  ActivityIndicator,
-  Alert,
   SafeAreaView,
-  ScrollView,
+  ImageBackground,
 } from "react-native";
-import { useAuth } from "../context/AuthContext";
 
-export default function CreateAccountScreen({ route, navigation }) {
-  const { surveyResponses } = route.params || { surveyResponses: {} };
+// Import the image directly
+const pixelSkyBackground = require('./pixel-sky.png');
 
-  const [username, setUsername] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-
-  const { signup, updateUserProfile } = useAuth();
-
-  const validateInputs = () => {
-    if (!username) {
-      Alert.alert("Error", "Please enter a username");
-      return false;
-    }
-
-    if (!email) {
-      Alert.alert("Error", "Please enter an email address");
-      return false;
-    }
-
-    if (!password) {
-      Alert.alert("Error", "Please enter a password");
-      return false;
-    }
-
-    if (password !== confirmPassword) {
-      Alert.alert("Error", "Passwords do not match");
-      return false;
-    }
-
-    // Email validation
-    const emailRegex = /^\S+@\S+\.\S+$/;
-    if (!emailRegex.test(email)) {
-      Alert.alert("Error", "Please enter a valid email address");
-      return false;
-    }
-
-    // Password validation (at least 6 characters)
-    if (password.length < 6) {
-      Alert.alert("Error", "Password must be at least 6 characters long");
-      return false;
-    }
-
-    return true;
-  };
-
-  const handleCreateAccount = async () => {
-    if (!validateInputs()) return;
-
-    setLoading(true);
-    try {
-      // Create Firebase account
-      const user = await signup(email, password);
-
-      // Update user profile with survey responses and username
-      await updateUserProfile({
-        username,
-        surveyResponses,
-        surveyCompleted: true,
-      });
-
-      // Navigation to home is handled by AppNavigator in App.js
-    } catch (error) {
-      Alert.alert("Error", error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
+export default function SelectionScreen({ navigation }) {
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Text style={styles.backButtonText}>← Back</Text>
-        </TouchableOpacity>
+    <ImageBackground 
+      source={pixelSkyBackground} 
+      style={styles.backgroundImage}
+    >
+      <SafeAreaView style={styles.container}>
+        <View style={styles.content}>
+          <Text style={styles.title}>Welcome</Text>
+          <Text style={styles.subtitle}>Choose an option to continue</Text>
 
-        <Text style={styles.title}>Create Your Account</Text>
-        <Text style={styles.subtitle}>
-          One last step before you're all set!
-        </Text>
+          <View style={styles.buttonOuterContainer}>
+            <View style={styles.buttonTopBorder} />
+            <View style={styles.buttonContainer}>
+              <View style={styles.buttonLeftBorder} />
+              <TouchableOpacity
+                style={styles.button}
+                onPress={() => navigation.navigate("Login")}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.buttonText}>Login</Text>
+              </TouchableOpacity>
+              <View style={styles.buttonRightBorder} />
+            </View>
+            <View style={styles.buttonBottomBorder} />
+          </View>
 
-        <View style={styles.form}>
-          <Text style={styles.label}>Username</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Choose a username"
-            value={username}
-            onChangeText={setUsername}
-            autoCapitalize="none"
-          />
-
-          <Text style={styles.label}>Email</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Enter your email"
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
-          />
-
-          <Text style={styles.label}>Password</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Create a password"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-          />
-
-          <Text style={styles.label}>Confirm Password</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Confirm your password"
-            value={confirmPassword}
-            onChangeText={setConfirmPassword}
-            secureTextEntry
-          />
-
-          <TouchableOpacity
-            style={styles.button}
-            onPress={handleCreateAccount}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.buttonText}>Create Account</Text>
-            )}
-          </TouchableOpacity>
+          <View style={styles.buttonOuterContainer}>
+            <View style={styles.buttonTopBorder} />
+            <View style={styles.buttonContainer}>
+              <View style={styles.buttonLeftBorder} />
+              <TouchableOpacity
+                style={styles.button}
+                onPress={() => navigation.navigate("OnboardingSurvey")}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.buttonText}>Create Account</Text>
+              </TouchableOpacity>
+              <View style={styles.buttonRightBorder} />
+            </View>
+            <View style={styles.buttonBottomBorder} />
+          </View>
         </View>
-      </ScrollView>
-    </SafeAreaView>
+      </SafeAreaView>
+    </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
+  backgroundImage: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+  },
   container: {
     flex: 1,
-    backgroundColor: "#f5f5f5",
   },
-  scrollContent: {
-    flexGrow: 1,
+  content: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
     padding: 20,
-  },
-  backButton: {
-    marginBottom: 20,
-  },
-  backButtonText: {
-    fontSize: 16,
-    color: "#007bff",
   },
   title: {
-    fontSize: 28,
+    fontSize: 36,
     fontWeight: "bold",
-    marginBottom: 10,
     textAlign: "center",
+    marginBottom: 10,
+    fontFamily: 'monospace',
+    color: '#000',
+    // Pixelated text effect
+    textShadowOffset: {width: 2, height: 2},
+    textShadowRadius: 0,
+    textShadowColor: 'rgba(0,0,0,0.5)',
   },
   subtitle: {
-    fontSize: 16,
-    color: "#666",
-    marginBottom: 30,
+    fontSize: 18,
     textAlign: "center",
+    color: '#000',
+    marginBottom: 40,
+    fontFamily: 'monospace',
   },
-  form: {
-    backgroundColor: "#fff",
-    borderRadius: 10,
-    padding: 20,
+  // Outer container for the whole button assembly
+  buttonOuterContainer: {
+    width: 280,
+    marginBottom: 20,
+    // Add shadow for 3D effect - more subtle now
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowOffset: {
+      width: 2,
+      height: 2,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 0,
   },
-  label: {
-    fontSize: 16,
-    marginBottom: 5,
-    fontWeight: "500",
+  // Top wooden border (lighter brown)
+  buttonTopBorder: {
+    height: 6,
+    backgroundColor: '#B87333', // Copper/lighter brown
+    marginHorizontal: 6,
   },
-  input: {
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 5,
-    padding: 10,
-    marginBottom: 15,
-    fontSize: 16,
+  // Container for the button and side borders
+  buttonContainer: {
+    flexDirection: 'row',
   },
+  // Left wooden border (lighter brown)
+  buttonLeftBorder: {
+    width: 6,
+    backgroundColor: '#B87333', // Copper/lighter brown
+  },
+  // The actual button with the light wood color
   button: {
-    backgroundColor: "#007bff",
-    borderRadius: 5,
-    padding: 15,
-    alignItems: "center",
-    marginTop: 10,
+    flex: 1,
+    height: 60,
+    backgroundColor: '#F5DEB3', // Wheat (lighter wood color)
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 3,
+    borderColor: '#D2B48C', // Tan (lighter inner border)
+    borderStyle: 'solid',
   },
+  // Right wooden border (lighter brown)
+  buttonRightBorder: {
+    width: 6,
+    backgroundColor: '#B87333', // Copper/lighter brown
+  },
+  // Bottom wooden border (lighter brown)
+  buttonBottomBorder: {
+    height: 6,
+    backgroundColor: '#B87333', // Copper/lighter brown
+    marginHorizontal: 6,
+  },
+  // Button text
   buttonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "500",
+    color: '#000',
+    fontSize: 22,
+    fontWeight: "bold",
+    fontFamily: 'monospace',
+    // Pixelated text style
+    textAlign: 'center',
   },
 });
