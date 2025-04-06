@@ -81,7 +81,12 @@ export default function HomeScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Groups</Text>
+        <View style={styles.headerContent}>
+          <Text style={styles.title}>Groups</Text>
+          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+            <Text style={styles.logoutButtonText}>Logout</Text>
+          </TouchableOpacity>
+        </View>
         {userProfile?.name && (
           <Text style={styles.subtitle}>Welcome, {userProfile.name}</Text>
         )}
@@ -134,10 +139,6 @@ export default function HomeScreen() {
       >
         <Text style={styles.createGroupButtonText}>Create New Group</Text>
       </TouchableOpacity>
-
-      <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-        <Text style={styles.logoutButtonText}>Log Out</Text>
-      </TouchableOpacity>
     </SafeAreaView>
   );
 }
@@ -150,18 +151,33 @@ const styles = StyleSheet.create({
   header: {
     padding: 20,
     backgroundColor: "#007bff",
+  },
+  headerContent: {
+    flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
+    marginBottom: 5,
   },
   title: {
     fontSize: 24,
     fontWeight: "bold",
     color: "#fff",
-    marginBottom: 5,
   },
   subtitle: {
     fontSize: 18,
     color: "#fff",
     opacity: 0.9,
+  },
+  logoutButton: {
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+  },
+  logoutButtonText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "500",
   },
   card: {
     margin: 20,
@@ -234,19 +250,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   createGroupButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "500",
-  },
-  logoutButton: {
-    marginHorizontal: 20,
-    marginBottom: 20,
-    backgroundColor: "#f44336",
-    padding: 15,
-    borderRadius: 5,
-    alignItems: "center",
-  },
-  logoutButtonText: {
     color: "#fff",
     fontSize: 16,
     fontWeight: "500",
