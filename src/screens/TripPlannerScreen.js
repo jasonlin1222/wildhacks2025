@@ -15,6 +15,8 @@ import {
 import * as Location from "expo-location";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import MapView, { Marker } from "react-native-maps";
+import { getAuth } from "firebase/auth";
+import { getFirestore, doc, getDoc } from "firebase/firestore";
 
 const GEOAPIFY_API_KEY = process.env.GEOAPIFY_API_KEY;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
@@ -32,8 +34,54 @@ const TripPlannerScreen = ({ navigation, route }) => {
   const [currentSideQuest, setCurrentSideQuest] = useState(null);
   const [sideQuestPoints, setSideQuestPoints] = useState(0);
   const [allQuestsCompleted, setAllQuestsCompleted] = useState(false);
+  const [personalityCategory, setPersonalityCategory] = useState(null);
   // Get the group ID from route params
   const groupId = route.params?.groupId;
+
+  // Fetch user's personality category from Firebase
+  useEffect(() => {
+    const fetchUserPersonality = async () => {
+      try {
+        const auth = getAuth();
+        const currentUser = auth.currentUser;
+
+        if (currentUser) {
+          const db = getFirestore();
+          const userDocRef = doc(db, "users", currentUser.uid);
+          const userDoc = await getDoc(userDocRef);
+
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            if (userData.personalityCategories) {
+              // Find the true personality category
+              const userPersonality = Object.keys(
+                userData.personalityCategories
+              ).find(
+                (category) => userData.personalityCategories[category] === true
+              );
+
+              if (userPersonality) {
+                setPersonalityCategory(userPersonality);
+                console.log("User personality category:", userPersonality);
+              } else {
+                console.log("No active personality categories found");
+              }
+            } else {
+              console.log("User has no personality categories set");
+            }
+          } else {
+            console.log("User document does not exist");
+          }
+        } else {
+          console.log("No user is logged in");
+        }
+      } catch (error) {
+        console.error("Error fetching user personality:", error);
+      }
+    };
+
+    fetchUserPersonality();
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -260,7 +308,7 @@ const TripPlannerScreen = ({ navigation, route }) => {
       for each pair of easy and hart quests, have a single value for dice value ranging from 1 to 20 depending on the difficulty. The more difficult it is, the lower the dice value should be.
       For these quests, the content should not depend on other events that happens in the trip, but rather a proactive action they can take at these locations. 
       these side quests should be also in json format with the follow keys: 
-      sidequest description, sidequest d20 check value, sidequest attribute modifier picking from (Introverted, Extroverted, Thinking, Feeling, Intuitive, Adventurous)
+      sidequest description, sidequest d20 check value, sidequest attribute modifier picking from (Adventurous, Artistic, Intellectual, Mysterious, Nurturing, Social)
       
       for example: the format should be like this:
 
@@ -295,13 +343,13 @@ const TripPlannerScreen = ({ navigation, route }) => {
             "sideQuestDescriptionEasy": "Side Quest Description",
             "sideQuestDescriptionHard": "Side Quest Description",
             "sideQuestD20CheckValue": "Side Quest D20 Check Value",
-            "sideQuestAttributeModifier": "Side Quest Attribute Modifier (pick from Introverted, Extroverted, Thinking, Feeling, Intuitive, Adventurous)"
+            "sideQuestAttributeModifier": "Side Quest Attribute Modifier (pick from Adventurous, Artistic, Intellectual, Mysterious, Nurturing, Social)"
           },
           {
             "sideQuestDescriptionEasy": "Side Quest Description",
             "sideQuestDescriptionHard": "Side Quest Description",
             "sideQuestD20CheckValue": "Side Quest D20 Check Value",
-            "sideQuestAttributeModifier": "Side Quest Attribute Modifier (pick from Introverted, Extroverted, Thinking, Feeling, Intuitive, Adventurous)"
+            "sideQuestAttributeModifier": "Side Quest Attribute Modifier (pick from Adventurous, Artistic, Intellectual, Mysterious, Nurturing, Social)"
           }
         ]
       }
@@ -352,17 +400,49 @@ const TripPlannerScreen = ({ navigation, route }) => {
     const roll = Math.floor(Math.random() * 20) + 1; // Roll a d20
     const checkValue = parseInt(currentSideQuest.sideQuestD20CheckValue);
 
+    // Check if user's personality matches the side quest attribute
+    const hasPersonalityBonus =
+      personalityCategory &&
+      currentSideQuest.sideQuestAttributeModifier.toLowerCase() ===
+        personalityCategory.toLowerCase();
+
+    console.log(
+      personalityCategory,
+      currentSideQuest.sideQuestAttributeModifier,
+      hasPersonalityBonus
+    );
+    // Apply +2 bonus if personality matches
+
+    // Apply +2 bonus if personality matches
+    const finalRoll = hasPersonalityBonus ? roll + 2 : roll;
+
     let selectedQuest;
     let pointValue;
 
-    if (roll >= checkValue) {
+    if (finalRoll >= checkValue) {
       selectedQuest = currentSideQuest.sideQuestDescriptionEasy;
       pointValue = 1;
-      Alert.alert("Dice Roll", `You rolled ${roll}! Taking the easy path.`);
+
+      // Update alert message to include bonus information
+      const bonusMessage = hasPersonalityBonus
+        ? ` (+2 bonus for ${personalityCategory} trait)`
+        : "";
+      Alert.alert(
+        "Dice Roll",
+        `You rolled ${roll}${bonusMessage}! Taking the easy path.`
+      );
     } else {
       selectedQuest = currentSideQuest.sideQuestDescriptionHard;
       pointValue = 2;
-      Alert.alert("Dice Roll", `You rolled ${roll}! Taking the hard path.`);
+
+      // Update alert message to include bonus information
+      const bonusMessage = hasPersonalityBonus
+        ? ` (+2 bonus for ${personalityCategory} trait)`
+        : "";
+      Alert.alert(
+        "Dice Roll",
+        `You rolled ${roll}${bonusMessage}! Taking the hard path.`
+      );
     }
 
     setSideQuestState("rolled");
@@ -370,7 +450,9 @@ const TripPlannerScreen = ({ navigation, route }) => {
       ...currentSideQuest,
       selectedQuest,
       pointValue,
-      roll,
+      roll: finalRoll,
+      originalRoll: roll,
+      hasPersonalityBonus,
     });
   };
 
@@ -399,14 +481,6 @@ const TripPlannerScreen = ({ navigation, route }) => {
 
   const finishTrip = () => {
     const isSuccessful = sideQuestPoints >= 5;
-    console.log(
-      "Finishing trip: success=",
-      isSuccessful,
-      "points=",
-      sideQuestPoints,
-      "groupId=",
-      groupId
-    );
 
     if (groupId) {
       // Navigate directly to the GroupScreen with parameters
@@ -421,8 +495,6 @@ const TripPlannerScreen = ({ navigation, route }) => {
       navigation.navigate("Home");
     }
   };
-
-  console.log(tripPlan);
 
   if (loading) {
     return (
@@ -571,7 +643,9 @@ const TripPlannerScreen = ({ navigation, route }) => {
                   Attribute: {currentSideQuest.sideQuestAttributeModifier}
                 </Text>
                 <Text style={styles.sideQuestRollText}>
-                  You rolled: {currentSideQuest.roll}
+                  You rolled:{" "}
+                  {currentSideQuest.originalRoll +
+                    (currentSideQuest.hasPersonalityBonus ? 2 : 0)}
                 </Text>
                 <Text style={styles.sideQuestSelectedText}>
                   {currentSideQuest.selectedQuest}
@@ -614,8 +688,8 @@ const TripPlannerScreen = ({ navigation, route }) => {
           </Text>
           <Text style={styles.completionStatus}>
             {sideQuestPoints >= 5
-              ? "Achievement Unlocked: Adventurer Extraordinaire!"
-              : "Better luck next time!"}
+              ? "Adventure Complete!"
+              : "You need more side quests to complete the adventure!"}
           </Text>
 
           <TouchableOpacity style={styles.finishButton} onPress={finishTrip}>
