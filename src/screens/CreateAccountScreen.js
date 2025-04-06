@@ -14,7 +14,7 @@ import {
 import { useAuth } from "../context/AuthContext";
 
 // Import the background image
-const pixelSkyBackground = require('./pixel-sky.png');
+const pixelSkyBackground = require("./pixel-sky.png");
 
 export default function CreateAccountScreen({ route, navigation }) {
   const { plantMatch, personalityCategory } = route.params || {};
@@ -66,7 +66,7 @@ export default function CreateAccountScreen({ route, navigation }) {
 
   const handleCreateAccount = async () => {
     if (!validateInputs()) return;
-  
+
     setLoading(true);
     try {
       // Create a personality categories object with all categories as false
@@ -76,21 +76,21 @@ export default function CreateAccountScreen({ route, navigation }) {
         nurturing: false,
         social: false,
         adventurous: false,
-        artistic: false
+        artistic: false,
       };
 
       // Set the matched category to true
       if (personalityCategory) {
         personalityCategories[personalityCategory] = true;
       }
-      
+
       // Create Firebase account with the plantMatch and personality categories
       const user = await signup(email, password, {
         username,
         plantMatch,
         surveyCompleted: true,
         // Add the personality categories
-        personalityCategories: personalityCategories
+        personalityCategories: personalityCategories,
       });
       console.log("Account created with plant match:", plantMatch);
       console.log("Personality category:", personalityCategory);
@@ -102,16 +102,18 @@ export default function CreateAccountScreen({ route, navigation }) {
   };
 
   // Render a wooden button
-  const renderWoodenButton = (text, onPress, isDisabled = false, isLoading = false) => (
+  const renderWoodenButton = (
+    text,
+    onPress,
+    isDisabled = false,
+    isLoading = false
+  ) => (
     <View style={styles.buttonOuterContainer}>
       <View style={styles.buttonTopBorder} />
       <View style={styles.buttonContainer}>
         <View style={styles.buttonLeftBorder} />
         <TouchableOpacity
-          style={[
-            styles.button, 
-            isDisabled && styles.disabledButton
-          ]}
+          style={[styles.button, isDisabled && styles.disabledButton]}
           onPress={onPress}
           disabled={isDisabled || isLoading}
           activeOpacity={0.8}
@@ -129,10 +131,7 @@ export default function CreateAccountScreen({ route, navigation }) {
   );
 
   return (
-    <ImageBackground 
-      source={pixelSkyBackground} 
-      style={styles.backgroundImage}
-    >
+    <ImageBackground source={pixelSkyBackground} style={styles.backgroundImage}>
       <SafeAreaView style={styles.container}>
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <TouchableOpacity
@@ -198,9 +197,9 @@ export default function CreateAccountScreen({ route, navigation }) {
             </View>
 
             {renderWoodenButton(
-              "Create Account", 
-              handleCreateAccount, 
-              false, 
+              "Create Account",
+              handleCreateAccount,
+              false,
               loading
             )}
           </View>
@@ -213,8 +212,8 @@ export default function CreateAccountScreen({ route, navigation }) {
 const styles = StyleSheet.create({
   backgroundImage: {
     flex: 1,
-    width: '100%',
-    height: '100%',
+    width: "100%",
+    height: "100%",
   },
   container: {
     flex: 1,
@@ -226,17 +225,17 @@ const styles = StyleSheet.create({
   },
   backButtonContainer: {
     marginBottom: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.7)',
+    backgroundColor: "rgba(255, 255, 255, 0.7)",
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 5,
-    alignSelf: 'flex-start',
+    alignSelf: "flex-start",
   },
   backButtonText: {
     fontSize: 16,
-    fontFamily: 'monospace',
-    color: '#4a2511', // Dark brown
-    fontWeight: 'bold',
+    fontFamily: "monospace",
+    color: "#4a2511", // Dark brown
+    fontWeight: "bold",
   },
   title: {
     fontSize: 32,
@@ -244,28 +243,21 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: 20,
     marginBottom: 10,
-    fontFamily: 'monospace',
-    color: '#000',
-    // Pixelated text effect
-    textShadowOffset: {width: 2, height: 2},
-    textShadowRadius: 0,
-    textShadowColor: 'rgba(0,0,0,0.5)',
+    fontFamily: "monospace",
+    color: "#000",
   },
   subtitle: {
     fontSize: 18,
     marginBottom: 30,
     textAlign: "center",
-    fontFamily: 'monospace',
-    color: '#4a2511', // Dark brown
-    textShadowOffset: {width: 1, height: 1},
-    textShadowRadius: 0,
-    textShadowColor: 'rgba(255,255,255,0.7)',
+    fontFamily: "monospace",
+    color: "#4a2511", // Dark brown
   },
   formContainer: {
-    backgroundColor: 'rgba(255, 255, 255, 0.85)',
+    backgroundColor: "rgba(255, 255, 255, 0.85)",
     borderWidth: 4,
-    borderColor: '#B87333', // Copper/lighter brown
-    borderStyle: 'solid',
+    borderColor: "#B87333", // Copper/lighter brown
+    borderStyle: "solid",
     padding: 20,
     marginBottom: 20,
   },
@@ -276,21 +268,21 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginBottom: 5,
     fontWeight: "500",
-    fontFamily: 'monospace',
-    color: '#4a2511', // Dark brown
+    fontFamily: "monospace",
+    color: "#4a2511", // Dark brown
   },
   input: {
     borderWidth: 3,
-    borderColor: '#B87333', // Copper/lighter brown
-    backgroundColor: '#F5DEB3', // Wheat (lighter wood color)
+    borderColor: "#B87333", // Copper/lighter brown
+    backgroundColor: "#F5DEB3", // Wheat (lighter wood color)
     padding: 12,
-    fontFamily: 'monospace',
+    fontFamily: "monospace",
     fontSize: 16,
-    color: '#000',
+    color: "#000",
   },
   // Outer container for the whole button assembly
   buttonOuterContainer: {
-    width: '100%',
+    width: "100%",
     marginTop: 15,
     marginBottom: 15,
     // Add shadow for 3D effect
@@ -305,50 +297,50 @@ const styles = StyleSheet.create({
   // Top wooden border
   buttonTopBorder: {
     height: 5,
-    backgroundColor: '#B87333', // Copper/lighter brown
-    width: '100%', // Make sure it spans full width
+    backgroundColor: "#B87333", // Copper/lighter brown
+    width: "100%", // Make sure it spans full width
   },
   // Container for the button and side borders
   buttonContainer: {
-    flexDirection: 'row',
-    width: '100%', // Make sure it takes full width of parent
-    overflow: 'hidden', // Hide any overflowing elements
+    flexDirection: "row",
+    width: "100%", // Make sure it takes full width of parent
+    overflow: "hidden", // Hide any overflowing elements
   },
   // Left wooden border
   buttonLeftBorder: {
     width: 5,
-    backgroundColor: '#B87333', // Copper/lighter brown
+    backgroundColor: "#B87333", // Copper/lighter brown
   },
   // The actual button with the light wood color
   button: {
     flex: 1,
     padding: 15,
-    backgroundColor: '#90EE90', // Light green
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#90EE90", // Light green
+    justifyContent: "center",
+    alignItems: "center",
     borderWidth: 2,
-    borderColor: '#2E8B57', // Sea green border
-    borderStyle: 'solid',
+    borderColor: "#2E8B57", // Sea green border
+    borderStyle: "solid",
   },
   disabledButton: {
-    backgroundColor: '#D3D3D3', // Light gray
+    backgroundColor: "#D3D3D3", // Light gray
     opacity: 0.7,
   },
   // Right wooden border
   buttonRightBorder: {
     width: 5,
-    backgroundColor: '#B87333', // Copper/lighter brown
+    backgroundColor: "#B87333", // Copper/lighter brown
   },
   // Bottom wooden border
   buttonBottomBorder: {
     height: 5,
-    backgroundColor: '#B87333', // Copper/lighter brown
+    backgroundColor: "#B87333", // Copper/lighter brown
     marginHorizontal: 5,
   },
   buttonText: {
-    color: '#000',
+    color: "#000",
     fontSize: 18,
-    fontWeight: 'bold',
-    fontFamily: 'monospace',
+    fontWeight: "bold",
+    fontFamily: "monospace",
   },
 });

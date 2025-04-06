@@ -11,6 +11,9 @@ import {
   Linking,
   Alert,
   Platform,
+  ImageBackground,
+  SafeAreaView,
+  Image,
 } from "react-native";
 import * as Location from "expo-location";
 import { GoogleGenerativeAI } from "@google/generative-ai";
@@ -20,6 +23,10 @@ import { getFirestore, doc, getDoc } from "firebase/firestore";
 
 const GEOAPIFY_API_KEY = process.env.GEOAPIFY_API_KEY;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+
+// Import the background image
+const pixelSkyBackground = require("./pixel-sky.png");
+const grassGif = require("./Grass.gif");
 
 const TripPlannerScreen = ({ navigation, route }) => {
   const [location, setLocation] = useState(null);
@@ -411,7 +418,6 @@ const TripPlannerScreen = ({ navigation, route }) => {
       currentSideQuest.sideQuestAttributeModifier,
       hasPersonalityBonus
     );
-    // Apply +2 bonus if personality matches
 
     // Apply +2 bonus if personality matches
     const finalRoll = hasPersonalityBonus ? roll + 2 : roll;
@@ -496,249 +502,556 @@ const TripPlannerScreen = ({ navigation, route }) => {
     }
   };
 
+  // Render a wooden button
+  const renderWoodenButton = (text, onPress, isDisabled = false) => (
+    <View style={styles.buttonOuterContainer}>
+      <View style={styles.buttonTopBorder} />
+      <View style={styles.buttonContainer}>
+        <View style={styles.buttonLeftBorder} />
+        <TouchableOpacity
+          style={[styles.woodenButton, isDisabled && styles.disabledButton]}
+          onPress={onPress}
+          disabled={isDisabled}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.woodenButtonText}>{text}</Text>
+        </TouchableOpacity>
+        <View style={styles.buttonRightBorder} />
+      </View>
+      <View style={styles.buttonBottomBorder} />
+    </View>
+  );
+
+  // Create a specialized button render function for the roll button
+  const renderRollButton = (onPress) => (
+    <TouchableOpacity
+      style={styles.rollButtonContainer}
+      onPress={onPress}
+      activeOpacity={0.7}
+    >
+      <Image source={grassGif} style={styles.grassBackground} />
+      <Text style={styles.rollButtonText}>Roll Dice</Text>
+    </TouchableOpacity>
+  );
+
+  // Create a smaller button for the skip function
+  const renderSmallButton = (text, onPress) => (
+    <View style={styles.smallButtonOuterContainer}>
+      <View style={styles.buttonTopBorder} />
+      <View style={styles.buttonContainer}>
+        <View style={styles.buttonLeftBorder} />
+        <TouchableOpacity
+          style={styles.smallWoodenButton}
+          onPress={onPress}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.smallButtonText}>{text}</Text>
+        </TouchableOpacity>
+        <View style={styles.buttonRightBorder} />
+      </View>
+      <View style={styles.buttonBottomBorder} />
+    </View>
+  );
+
   if (loading) {
     return (
-      <View style={styles.container}>
-        <ActivityIndicator size="large" color="#0000ff" />
-        <Text>Loading trip plan...</Text>
-      </View>
+      <ImageBackground
+        source={pixelSkyBackground}
+        style={styles.backgroundImage}
+      >
+        <SafeAreaView style={styles.container}>
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#B87333" />
+            <Text style={styles.loadingText}>Loading trip plan...</Text>
+          </View>
+        </SafeAreaView>
+      </ImageBackground>
     );
   }
 
   if (errorMsg) {
     return (
-      <View style={styles.container}>
-        <Text style={styles.error}>{errorMsg}</Text>
-      </View>
+      <ImageBackground
+        source={pixelSkyBackground}
+        style={styles.backgroundImage}
+      >
+        <SafeAreaView style={styles.container}>
+          <View style={styles.errorContainer}>
+            <Text style={styles.error}>{errorMsg}</Text>
+            {renderWoodenButton("Go Back", () => navigation.goBack())}
+          </View>
+        </SafeAreaView>
+      </ImageBackground>
     );
   }
 
   return (
-    <ScrollView style={styles.container}>
-      <Text style={styles.title}>Your Personalized Trip Plan</Text>
+    <ImageBackground source={pixelSkyBackground} style={styles.backgroundImage}>
+      <SafeAreaView style={styles.container}>
+        <ScrollView style={styles.scrollContent}>
+          {/* Map View */}
+          {mapLocations.length > 0 && (
+            <View style={styles.cardContainer}>
+              <View style={styles.mapContainer}>
+                <MapView
+                  style={styles.map}
+                  region={{
+                    latitude:
+                      mapLocations[currentLocationIndex]?.coordinate
+                        ?.latitude || 37.78825,
+                    longitude:
+                      mapLocations[currentLocationIndex]?.coordinate
+                        ?.longitude || -122.4324,
+                    latitudeDelta: 0.0922,
+                    longitudeDelta: 0.0421,
+                  }}
+                >
+                  {mapLocations.map((location, index) => (
+                    <Marker
+                      key={index}
+                      coordinate={location.coordinate}
+                      title={location.locationName}
+                      description={location.locationDescription}
+                      pinColor={index === currentLocationIndex ? "red" : "blue"}
+                    />
+                  ))}
+                </MapView>
 
-      {/* Location Navigation */}
-      {mapLocations.length > 0 && (
-        <View style={styles.navigationContainer}>
-          <TouchableOpacity
-            style={[
-              styles.navButton,
-              currentLocationIndex === 0 && styles.disabledButton,
-            ]}
-            onPress={goToPreviousLocation}
-            disabled={currentLocationIndex === 0}
-          >
-            <Text style={styles.navButtonText}>←</Text>
-          </TouchableOpacity>
-
-          <Text style={styles.locationTitle}>
-            {mapLocations[currentLocationIndex]?.time}:{" "}
-            {mapLocations[currentLocationIndex]?.locationName}
-          </Text>
-
-          <TouchableOpacity
-            style={[
-              styles.navButton,
-              currentLocationIndex === mapLocations.length - 1 &&
-                styles.disabledButton,
-            ]}
-            onPress={goToNextLocation}
-            disabled={currentLocationIndex === mapLocations.length - 1}
-          >
-            <Text style={styles.navButtonText}>→</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-
-      {/* Map View */}
-      {mapLocations.length > 0 && (
-        <View style={styles.mapContainer}>
-          <MapView
-            style={styles.map}
-            region={{
-              latitude:
-                mapLocations[currentLocationIndex]?.coordinate?.latitude ||
-                37.78825,
-              longitude:
-                mapLocations[currentLocationIndex]?.coordinate?.longitude ||
-                -122.4324,
-              latitudeDelta: 0.0922,
-              longitudeDelta: 0.0421,
-            }}
-          >
-            {mapLocations.map((location, index) => (
-              <Marker
-                key={index}
-                coordinate={location.coordinate}
-                title={location.locationName}
-                description={location.locationDescription}
-                pinColor={index === currentLocationIndex ? "red" : "blue"}
-              />
-            ))}
-          </MapView>
-
-          <TouchableOpacity
-            style={styles.directionsButton}
-            onPress={openMapsForDirections}
-          >
-            <Text style={styles.directionsButtonText}>Get Directions</Text>
-          </TouchableOpacity>
-
-          <Text style={styles.locationDescription}>
-            {mapLocations[currentLocationIndex]?.locationDescription}
-          </Text>
-        </View>
-      )}
-
-      {/* Side Quest Deck */}
-      {parsedTripPlan && parsedTripPlan.sideQuests && !allQuestsCompleted && (
-        <View style={styles.sideQuestContainer}>
-          <Text style={styles.sideQuestTitle}>Side Quests</Text>
-
-          <View style={styles.sideQuestCard}>
-            {sideQuestState === "initial" && currentSideQuest && (
-              <>
-                <Text style={styles.sideQuestCardTitle}>
-                  Side Quest {currentSideQuestIndex + 1}/
-                  {parsedTripPlan.sideQuests.length}
-                </Text>
-                <Text style={styles.sideQuestAttributeText}>
-                  Attribute: {currentSideQuest.sideQuestAttributeModifier}
-                </Text>
-                <Text style={styles.sideQuestText}>
-                  Easy: {currentSideQuest.sideQuestDescriptionEasy}
-                </Text>
-                <Text style={styles.sideQuestText}>
-                  Hard: {currentSideQuest.sideQuestDescriptionHard}
-                </Text>
-                <Text style={styles.sideQuestDiceText}>
-                  Dice Check Value: {currentSideQuest.sideQuestD20CheckValue}
-                </Text>
-
-                <View style={styles.sideQuestButtonContainer}>
+                {/* Overlay navigation bar on top of the map */}
+                <View style={styles.overlayNavigation}>
                   <TouchableOpacity
-                    style={styles.sideQuestButton}
-                    onPress={rollDice}
+                    style={[
+                      styles.navButton,
+                      currentLocationIndex === 0 && styles.disabledButton,
+                    ]}
+                    onPress={goToPreviousLocation}
+                    disabled={currentLocationIndex === 0}
                   >
-                    <Text style={styles.buttonText}>Roll</Text>
+                    <Text style={styles.navButtonText}>←</Text>
                   </TouchableOpacity>
 
+                  <Text style={styles.locationTitle}>
+                    {mapLocations[currentLocationIndex]?.time}:{" "}
+                    {mapLocations[currentLocationIndex]?.locationName}
+                  </Text>
+
                   <TouchableOpacity
-                    style={[styles.sideQuestButton, styles.skipButton]}
-                    onPress={skipQuest}
+                    style={[
+                      styles.navButton,
+                      currentLocationIndex === mapLocations.length - 1 &&
+                        styles.disabledButton,
+                    ]}
+                    onPress={goToNextLocation}
+                    disabled={currentLocationIndex === mapLocations.length - 1}
                   >
-                    <Text style={styles.buttonText}>Skip</Text>
+                    <Text style={styles.navButtonText}>→</Text>
                   </TouchableOpacity>
                 </View>
-              </>
-            )}
 
-            {sideQuestState === "rolled" && currentSideQuest && (
-              <>
-                <Text style={styles.sideQuestCardTitle}>
-                  Side Quest {currentSideQuestIndex + 1}/
-                  {parsedTripPlan.sideQuests.length}
-                </Text>
-                <Text style={styles.sideQuestAttributeText}>
-                  Attribute: {currentSideQuest.sideQuestAttributeModifier}
-                </Text>
-                <Text style={styles.sideQuestRollText}>
-                  You rolled:{" "}
-                  {currentSideQuest.originalRoll +
-                    (currentSideQuest.hasPersonalityBonus ? 2 : 0)}
-                </Text>
-                <Text style={styles.sideQuestSelectedText}>
-                  {currentSideQuest.selectedQuest}
-                </Text>
-                <Text style={styles.sideQuestPointsText}>
-                  Points: {currentSideQuest.pointValue}
-                </Text>
+                {/* Repositioned Get Directions button */}
+                <TouchableOpacity
+                  style={styles.directionsButton}
+                  onPress={openMapsForDirections}
+                >
+                  <Text style={styles.directionsButtonText}>📍 Directions</Text>
+                </TouchableOpacity>
 
-                <View style={styles.sideQuestButtonContainer}>
-                  <TouchableOpacity
-                    style={styles.sideQuestButton}
-                    onPress={completeQuest}
-                  >
-                    <Text style={styles.buttonText}>Complete</Text>
-                  </TouchableOpacity>
+                <Text style={styles.locationDescription}>
+                  {mapLocations[currentLocationIndex]?.locationDescription}
+                </Text>
+              </View>
+            </View>
+          )}
 
-                  <TouchableOpacity
-                    style={[styles.sideQuestButton, styles.skipButton]}
-                    onPress={skipQuest}
-                  >
-                    <Text style={styles.buttonText}>Skip</Text>
-                  </TouchableOpacity>
+          {/* Side Quest Deck */}
+          {parsedTripPlan &&
+            parsedTripPlan.sideQuests &&
+            !allQuestsCompleted && (
+              <View style={styles.cardContainer}>
+                <View style={styles.sideQuestCard}>
+                  {sideQuestState === "initial" && currentSideQuest && (
+                    <>
+                      <Text style={styles.sideQuestCardTitle}>
+                        Side Quest {currentSideQuestIndex + 1}/
+                        {parsedTripPlan.sideQuests.length}
+                      </Text>
+                      <Text style={styles.sideQuestAttributeText}>
+                        Attribute: {currentSideQuest.sideQuestAttributeModifier}
+                      </Text>
+                      <View style={styles.questDescriptionContainer}>
+                        <Text style={styles.questLabel}>Easy:</Text>
+                        <Text style={styles.sideQuestText}>
+                          {currentSideQuest.sideQuestDescriptionEasy}
+                        </Text>
+                      </View>
+                      <View style={styles.questDescriptionContainer}>
+                        <Text style={styles.questLabel}>Hard:</Text>
+                        <Text style={styles.sideQuestText}>
+                          {currentSideQuest.sideQuestDescriptionHard}
+                        </Text>
+                      </View>
+                      <Text style={styles.sideQuestDiceText}>
+                        Dice Check Value:{" "}
+                        {currentSideQuest.sideQuestD20CheckValue}
+                      </Text>
+
+                      <View style={styles.verticalButtonContainer}>
+                        {renderRollButton(rollDice)}
+                        {renderSmallButton("Skip", skipQuest)}
+                      </View>
+                    </>
+                  )}
+
+                  {sideQuestState === "rolled" && currentSideQuest && (
+                    <>
+                      <Text style={styles.sideQuestCardTitle}>
+                        Side Quest {currentSideQuestIndex + 1}/
+                        {parsedTripPlan.sideQuests.length}
+                      </Text>
+                      <Text style={styles.sideQuestAttributeText}>
+                        Attribute: {currentSideQuest.sideQuestAttributeModifier}
+                      </Text>
+                      <Text style={styles.sideQuestRollText}>
+                        You rolled: {currentSideQuest.originalRoll}
+                        {currentSideQuest.hasPersonalityBonus
+                          ? ` (+2 for ${personalityCategory})`
+                          : ""}
+                      </Text>
+                      <Text style={styles.sideQuestSelectedText}>
+                        {currentSideQuest.selectedQuest}
+                      </Text>
+                      <Text style={styles.sideQuestPointsText}>
+                        Points: {currentSideQuest.pointValue}
+                      </Text>
+
+                      <View style={styles.verticalButtonContainer}>
+                        {renderWoodenButton("Complete", completeQuest, false)}
+                        {renderSmallButton("Skip", skipQuest)}
+                      </View>
+                    </>
+                  )}
                 </View>
-              </>
+
+                <Text style={styles.pointsCounter}>
+                  Total Points: {sideQuestPoints}
+                </Text>
+              </View>
             )}
-          </View>
 
-          <Text style={styles.pointsCounter}>
-            Total Points: {sideQuestPoints}
-          </Text>
-        </View>
-      )}
+          {/* Trip Completion */}
+          {allQuestsCompleted && (
+            <View style={styles.cardContainer}>
+              <Text style={styles.sectionTitle}>Adventure Complete!</Text>
+              <View style={styles.completionCard}>
+                <Text style={styles.completionText}>
+                  You earned {sideQuestPoints} points from side quests.
+                </Text>
+                <Text style={styles.completionStatus}>
+                  {sideQuestPoints >= 5
+                    ? "Adventure Successful!"
+                    : "You need more points to complete the adventure!"}
+                </Text>
 
-      {/* Trip Completion */}
-      {allQuestsCompleted && (
-        <View style={styles.completionContainer}>
-          <Text style={styles.completionTitle}>Trip Complete!</Text>
-          <Text style={styles.completionText}>
-            You earned {sideQuestPoints} points from side quests.
-          </Text>
-          <Text style={styles.completionStatus}>
-            {sideQuestPoints >= 5
-              ? "Adventure Complete!"
-              : "You need more side quests to complete the adventure!"}
-          </Text>
-
-          <TouchableOpacity style={styles.finishButton} onPress={finishTrip}>
-            <Text style={styles.finishButtonText}>
-              {groupId ? "Return to Group" : "Return to Home"}
-            </Text>
-          </TouchableOpacity>
-        </View>
-      )}
-    </ScrollView>
+                {renderWoodenButton(
+                  groupId ? "Return to Group" : "Return to Home",
+                  finishTrip,
+                  false
+                )}
+              </View>
+            </View>
+          )}
+        </ScrollView>
+      </SafeAreaView>
+    </ImageBackground>
   );
 };
 
 const styles = StyleSheet.create({
+  backgroundImage: {
+    flex: 1,
+    width: "100%",
+    height: "100%",
+  },
   container: {
     flex: 1,
-    padding: 20,
-    paddingTop: Platform.OS === "ios" ? 60 : 40,
-    backgroundColor: "#fff",
   },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    marginBottom: 20,
-    textAlign: "center",
+  scrollContent: {
+    padding: 20,
+    paddingTop: Platform.OS === "ios" ? 10 : 20,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.8)",
+    margin: 20,
+    borderRadius: 10,
+    padding: 20,
+    borderWidth: 4,
+    borderColor: "#B87333",
+  },
+  loadingText: {
+    fontSize: 16,
+    marginTop: 10,
+    fontFamily: "monospace",
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
   },
   error: {
     color: "red",
     fontSize: 16,
+    fontFamily: "monospace",
+    backgroundColor: "rgba(255, 255, 255, 0.8)",
+    padding: 20,
+    marginBottom: 20,
+    borderRadius: 10,
+    borderWidth: 4,
+    borderColor: "#B87333",
+    textAlign: "center",
   },
-  navigationContainer: {
+  title: {
+    fontSize: 32,
+    fontWeight: "bold",
+    marginBottom: 20,
+    textAlign: "center",
+    fontFamily: "monospace",
+    color: "#000",
+  },
+  cardContainer: {
+    marginBottom: 20,
+    backgroundColor: "rgba(255, 255, 255, 0.85)",
+    borderWidth: 4,
+    borderColor: "#B87333",
+    padding: 15,
+  },
+  mapContainer: {
+    height: 280,
+    marginBottom: 10,
+    overflow: "hidden",
+  },
+  map: {
+    ...StyleSheet.absoluteFillObject,
+    marginBottom: 60,
+    height: 280,
+  },
+  locationDescription: {
+    backgroundColor: "rgba(255, 255, 255, 0.8)",
+    padding: 10,
+    fontSize: 14,
+    marginTop: 280,
+    fontFamily: "monospace",
+    borderWidth: 3,
+    borderColor: "#B87333",
+  },
+  sectionTitle: {
+    fontSize: 24,
+    fontWeight: "bold",
+    marginBottom: 15,
+    textAlign: "center",
+    fontFamily: "monospace",
+    color: "#000",
+  },
+  sideQuestCard: {
+    backgroundColor: "#F5DEB3", // Wheat color
+    borderWidth: 3,
+    borderColor: "#B87333",
+    padding: 15,
+    marginBottom: 15,
+  },
+  sideQuestCardTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 10,
+    fontFamily: "monospace",
+  },
+  sideQuestAttributeText: {
+    fontSize: 16,
+    marginBottom: 10,
+    fontStyle: "italic",
+    fontFamily: "monospace",
+    color: "#4a2511", // Dark brown
+  },
+  questDescriptionContainer: {
+    marginBottom: 8,
+  },
+  questLabel: {
+    fontWeight: "bold",
+    fontFamily: "monospace",
+  },
+  sideQuestText: {
+    fontSize: 14,
+    fontFamily: "monospace",
+  },
+  sideQuestDiceText: {
+    fontSize: 14,
+    marginVertical: 10,
+    fontWeight: "bold",
+    fontFamily: "monospace",
+  },
+  sideQuestRollText: {
+    fontSize: 16,
+    marginBottom: 10,
+    fontWeight: "bold",
+    fontFamily: "monospace",
+  },
+  sideQuestSelectedText: {
+    fontSize: 16,
+    marginBottom: 15,
+    fontStyle: "italic",
+    fontFamily: "monospace",
+  },
+  sideQuestPointsText: {
+    fontSize: 16,
+    fontWeight: "bold",
+    marginVertical: 10,
+    fontFamily: "monospace",
+  },
+  buttonRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 15,
+    marginHorizontal: -5,
+  },
+  buttonWrapper: {
+    flex: 1,
+    maxWidth: "48%",
+    marginHorizontal: 5,
+  },
+  pointsCounter: {
+    fontSize: 18,
+    fontWeight: "bold",
+    textAlign: "center",
+    fontFamily: "monospace",
+    color: "#4a2511",
+  },
+  completionCard: {
+    backgroundColor: "#F5DEB3",
+    padding: 20,
+    alignItems: "center",
+    borderWidth: 3,
+    borderColor: "#B87333",
+  },
+  completionText: {
+    fontSize: 16,
+    marginBottom: 10,
+    textAlign: "center",
+    fontFamily: "monospace",
+  },
+  completionStatus: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 20,
+    textAlign: "center",
+    color: "#4CAF50",
+    fontFamily: "monospace",
+  },
+  // Wooden button styles
+  buttonOuterContainer: {
+    marginVertical: 10,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 2,
+      height: 2,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 0,
+    minWidth: 120,
+  },
+  buttonTopBorder: {
+    height: 5,
+    backgroundColor: "#B87333", // Copper/lighter brown
+    width: "100%",
+  },
+  buttonContainer: {
+    flexDirection: "row",
+    width: "100%",
+    overflow: "hidden",
+  },
+  buttonLeftBorder: {
+    width: 5,
+    backgroundColor: "#B87333",
+  },
+  woodenButton: {
+    flex: 1,
+    padding: 12,
+    backgroundColor: "#90EE90", // Light green
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 2,
+    borderColor: "#2E8B57", // Sea green border
+    height: 45,
+  },
+  woodenButtonText: {
+    color: "#000",
+    fontWeight: "bold",
+    fontSize: 15,
+    fontFamily: "monospace",
+    textAlign: "center",
+  },
+  buttonRightBorder: {
+    width: 5,
+    backgroundColor: "#B87333",
+  },
+  buttonBottomBorder: {
+    height: 5,
+    backgroundColor: "#B87333",
+    width: "100%",
+  },
+  overlayNavigation: {
+    position: "absolute",
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 15,
+    top: 10,
+    left: 10,
+    right: 10,
+    backgroundColor: "rgba(255, 255, 255, 0.8)",
+    paddingVertical: 8,
     paddingHorizontal: 10,
+    borderWidth: 2,
+    borderColor: "#B87333",
+  },
+  directionsButton: {
+    position: "absolute",
+    bottom: 85, // Position above the description area
+    left: "50%",
+    transform: [{ translateX: -70 }], // Center the button (half of the width)
+    backgroundColor: "#90EE90", // Light green to match other buttons
+    padding: 8,
+    paddingHorizontal: 12,
+    borderRadius: 0,
+    borderWidth: 2,
+    borderColor: "#2E8B57",
+    height: 40,
+    width: 140,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  directionsButtonText: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#000",
+    fontFamily: "monospace",
   },
   navButton: {
     backgroundColor: "#4285F4",
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: 0,
     justifyContent: "center",
     alignItems: "center",
+    borderWidth: 3,
+    borderColor: "#2E8B57",
   },
   navButtonText: {
     color: "white",
     fontSize: 20,
     fontWeight: "bold",
+    fontFamily: "monospace",
   },
   disabledButton: {
     backgroundColor: "#cccccc",
@@ -749,155 +1062,70 @@ const styles = StyleSheet.create({
     textAlign: "center",
     flex: 1,
     paddingHorizontal: 10,
+    fontFamily: "monospace",
+    color: "#000",
   },
-  mapContainer: {
-    height: 350,
-    marginBottom: 20,
-    borderRadius: 10,
+  rollButtonContainer: {
+    width: "90%",
+    height: 100,
+    marginVertical: 10,
+    borderWidth: 3,
+    borderColor: "#2E8B57",
+    borderRadius: 0,
     overflow: "hidden",
+    justifyContent: "center",
+    alignItems: "center",
+    alignSelf: "center",
+    position: "relative",
   },
-  map: {
-    ...StyleSheet.absoluteFillObject,
-    borderRadius: 10,
-  },
-  directionsButton: {
+  grassBackground: {
     position: "absolute",
-    top: 10,
-    right: 10,
-    backgroundColor: "#4285F4",
-    paddingHorizontal: 15,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-  directionsButtonText: {
-    color: "white",
-    fontWeight: "bold",
-  },
-  locationDescription: {
-    position: "absolute",
-    bottom: 0,
+    top: 0,
     left: 0,
-    right: 0,
-    backgroundColor: "rgba(255, 255, 255, 0.8)",
-    padding: 10,
-    fontSize: 14,
+    width: "100%",
+    height: "100%",
   },
-  sideQuestContainer: {
-    marginVertical: 20,
-  },
-  sideQuestTitle: {
-    fontSize: 20,
+  rollButtonText: {
+    color: "#FFF",
     fontWeight: "bold",
-    marginBottom: 10,
+    fontSize: 24,
+    fontFamily: "monospace",
     textAlign: "center",
+    textShadowColor: "rgba(0, 0, 0, 0.75)",
+    textShadowOffset: { width: 2, height: 2 },
+    textShadowRadius: 3,
   },
-  sideQuestCard: {
-    backgroundColor: "#f5f5f5",
-    borderRadius: 10,
-    padding: 15,
-    marginBottom: 15,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  sideQuestCardTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    marginBottom: 10,
-  },
-  sideQuestAttributeText: {
-    fontSize: 16,
-    marginBottom: 10,
-    fontStyle: "italic",
-  },
-  sideQuestText: {
-    fontSize: 14,
-    marginBottom: 8,
-  },
-  sideQuestDiceText: {
-    fontSize: 14,
-    marginVertical: 10,
-    fontWeight: "bold",
-  },
-  sideQuestRollText: {
-    fontSize: 16,
-    marginBottom: 10,
-    fontWeight: "bold",
-  },
-  sideQuestSelectedText: {
-    fontSize: 16,
-    marginBottom: 15,
-    fontStyle: "italic",
-  },
-  sideQuestPointsText: {
-    fontSize: 16,
-    fontWeight: "bold",
-    marginVertical: 10,
-  },
-  sideQuestButtonContainer: {
-    flexDirection: "row",
-    justifyContent: "space-around",
+  verticalButtonContainer: {
+    alignItems: "center",
     marginTop: 15,
   },
-  sideQuestButton: {
-    backgroundColor: "#4285F4",
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 25,
-    minWidth: 120,
+  smallButtonOuterContainer: {
+    width: "60%",
+    marginVertical: 8,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 2,
+      height: 2,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 0,
+  },
+  smallWoodenButton: {
+    flex: 1,
+    padding: 8,
+    backgroundColor: "#90EE90", // Light green
+    justifyContent: "center",
     alignItems: "center",
+    borderWidth: 2,
+    borderColor: "#2E8B57", // Sea green border
+    height: 35,
   },
-  skipButton: {
-    backgroundColor: "#9e9e9e",
-  },
-  buttonText: {
-    color: "white",
+  smallButtonText: {
+    color: "#000",
     fontWeight: "bold",
-    fontSize: 16,
-  },
-  pointsCounter: {
-    fontSize: 16,
-    fontWeight: "bold",
+    fontSize: 14,
+    fontFamily: "monospace",
     textAlign: "center",
-  },
-  completionContainer: {
-    backgroundColor: "#f0f8ff",
-    borderRadius: 10,
-    padding: 20,
-    marginTop: 20,
-    alignItems: "center",
-  },
-  completionTitle: {
-    fontSize: 24,
-    fontWeight: "bold",
-    marginBottom: 15,
-    color: "#4285F4",
-  },
-  completionText: {
-    fontSize: 16,
-    marginBottom: 10,
-    textAlign: "center",
-  },
-  completionStatus: {
-    fontSize: 18,
-    fontWeight: "bold",
-    marginBottom: 20,
-    textAlign: "center",
-    color: "#4CAF50",
-  },
-  finishButton: {
-    backgroundColor: "#4285F4",
-    paddingVertical: 12,
-    paddingHorizontal: 30,
-    borderRadius: 25,
-    marginTop: 10,
-  },
-  finishButtonText: {
-    color: "white",
-    fontWeight: "bold",
-    fontSize: 16,
   },
 });
 

@@ -9,6 +9,8 @@ import {
   ActivityIndicator,
   Alert,
   Platform,
+  ImageBackground,
+  Image,
 } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { useAuth } from "../context/AuthContext";
@@ -21,6 +23,84 @@ import {
   onSnapshot,
 } from "firebase/firestore";
 import { db } from "../config/firebase";
+
+// Import shared assets
+const pixelSkyBackground = require("./pixel-sky.png");
+
+// Import garden backgrounds with numbered keys for easier mapping
+const gardenBackgrounds = {
+  1: require("./gardenbackground/1.png"),
+  2: require("./gardenbackground/2.png"),
+  3: require("./gardenbackground/3.png"),
+  4: require("./gardenbackground/4.png"),
+  5: require("./gardenbackground/5.png"),
+  6: require("./gardenbackground/6.png"),
+};
+
+// Import garden sprout GIFs for progress visualization
+const gardenSprouts = {
+  1: require("./gardensprout/1.gif"),
+  2: require("./gardensprout/2.gif"),
+  3: require("./gardensprout/3.gif"),
+  4: require("./gardensprout/4.gif"),
+  5: require("./gardensprout/5.gif"),
+  6: require("./gardensprout/6.gif"),
+};
+
+// Import all plant GIFs
+const plants = {
+  // Mysterious/Intense plants
+  blueRose: require("./plants/blue-rose.gif"),
+  moonflower: require("./plants/moonflower.gif"),
+  blackDahlia: require("./plants/black-dahlia.gif"),
+  hellebore: require("./plants/hellebore.gif"),
+  // Intellectual/Thoughtful plants
+  bonsai: require("./plants/bonsai.gif"),
+  orchid: require("./plants/orchid.gif"),
+  bamboo: require("./plants/bamboo.gif"),
+  japaneseMaple: require("./plants/japanese-maple.gif"),
+  ginkgoTree: require("./plants/ginkgo-tree.gif"),
+  // Nurturing/Caring plants
+  aloeVera: require("./plants/aloe-vera.gif"),
+  lavender: require("./plants/lavender.gif"),
+  rosemary: require("./plants/rosemary.gif"),
+  chamomile: require("./plants/chamomile.gif"),
+  // Social/Expressive plants
+  sunflower: require("./plants/sunflower.gif"),
+  cherryBlossom: require("./plants/cherry-blossom.gif"),
+  hibiscus: require("./plants/hibiscus.gif"),
+  // Adventurous/Bold plants
+  marigold: require("./plants/marigold.gif"),
+  amaryllis: require("./plants/amaryllis.gif"),
+  dandelion: require("./plants/dandelion.gif"),
+  fireLily: require("./plants/fire-lily.gif"),
+  // Artistic/Creative plants
+  bleedingHeart: require("./plants/bleeding-heart.gif"),
+  birdOfParadise: require("./plants/bird-of-paradise.gif"),
+  wisteria: require("./plants/wisteria.gif"),
+  poppy: require("./plants/poppy.gif"),
+  // Default plant
+  default: require("./plants/default-plant.gif"),
+};
+
+// Helper for rendering the wooden-bordered buttons
+const WoodenButton = ({ onPress, style, disabled, children }) => (
+  <View style={styles.buttonOuterContainer}>
+    <View style={styles.buttonTopBorder} />
+    <View style={styles.buttonContainer}>
+      <View style={styles.buttonLeftBorder} />
+      <TouchableOpacity
+        style={[styles.navButton, style]}
+        onPress={onPress}
+        disabled={disabled}
+      >
+        {children}
+      </TouchableOpacity>
+      <View style={styles.buttonRightBorder} />
+    </View>
+    <View style={styles.buttonBottomBorder} />
+  </View>
+);
 
 const GroupScreen = () => {
   const navigation = useNavigation();
@@ -45,7 +125,6 @@ const GroupScreen = () => {
         });
 
         if (tripSuccess) {
-          // Directly call updateGroupProgress (no setTimeout)
           await updateGroupProgress();
           Alert.alert(
             "Adventure Completed!",
@@ -60,7 +139,7 @@ const GroupScreen = () => {
           );
         }
 
-        // Clear the params after handling them to prevent duplicate processing
+        // Clear the params after handling them
         navigation.setParams({
           tripCompleted: undefined,
           tripSuccess: undefined,
@@ -79,15 +158,15 @@ const GroupScreen = () => {
       (docSnapshot) => {
         if (docSnapshot.exists()) {
           const groupData = docSnapshot.data();
-          console.log("Group data loaded:", groupData);
+
+          // If group doesn't have a background ID, assign one
+          if (!groupData.backgroundId) {
+            assignBackgroundToGroup(docSnapshot.id);
+          }
+
           setGroup(groupData);
-
-          // Check if current user is a member
-          const memberIds = groupData.members || [];
-          setIsMember(memberIds.includes(currentUser.uid));
-
-          // Fetch members' profiles
-          fetchMembersProfiles(memberIds);
+          setIsMember((groupData.members || []).includes(currentUser.uid));
+          fetchMembersProfiles(groupData.members || []);
         } else {
           Alert.alert("Error", "Group not found");
           navigation.navigate("Home");
@@ -109,14 +188,11 @@ const GroupScreen = () => {
     if (!memberIds || memberIds.length === 0) return;
 
     try {
-      console.log("Fetching member profiles for:", memberIds);
-
       const memberProfiles = await Promise.all(
         memberIds.map(async (userId) => {
           try {
-            // Check if this user is the current user, use userProfile data directly
+            // Use current user profile data if available
             if (userId === currentUser.uid && userProfile) {
-              console.log("Current user profile:", userProfile);
               return {
                 id: userId,
                 name: userProfile.username,
@@ -124,19 +200,13 @@ const GroupScreen = () => {
               };
             }
 
-            // Fetch profile from Firestore
+            // Otherwise fetch from Firestore
             const userDoc = await getDoc(doc(db, "users", userId));
             if (userDoc.exists()) {
               const userData = userDoc.data();
-              console.log("User data for", userId, ":", userData);
-
-              // Try different properties to find a display name
-              const displayName =
-                userData.username || `User ${userId.slice(0, 5)}`;
-
               return {
                 id: userId,
-                name: displayName,
+                name: userData.username || `User ${userId.slice(0, 5)}`,
                 ...userData,
               };
             }
@@ -148,7 +218,6 @@ const GroupScreen = () => {
         })
       );
 
-      console.log("Member profiles after fetch:", memberProfiles);
       setMembers(memberProfiles);
     } catch (error) {
       console.error("Error in fetchMembersProfiles:", error);
@@ -175,49 +244,27 @@ const GroupScreen = () => {
 
   const updateGroupProgress = async () => {
     try {
-      // Get the latest group data directly from Firestore
+      // Get latest group data from Firestore
       const groupRef = doc(db, "groups", groupId);
       const groupSnapshot = await getDoc(groupRef);
 
-      if (!groupSnapshot.exists()) {
-        console.error("Group document does not exist");
-        return;
-      }
+      if (!groupSnapshot.exists()) return;
 
       const groupData = groupSnapshot.data();
-      console.log("Current group data from Firestore:", groupData);
-
-      // Get current progress with fallback to 0
       const currentProgress = groupData.progress || 0;
-      console.log("Current progress:", currentProgress);
 
       // Only update if progress is less than 5
       if (currentProgress < 5) {
         const newProgress = currentProgress + 1;
-        console.log("Setting new progress to:", newProgress);
 
         // Update Firestore
-        await updateDoc(groupRef, {
+        await updateDoc(groupRef, { progress: newProgress });
+
+        // Update local state
+        setGroup((prevGroup) => ({
+          ...(prevGroup || {}),
           progress: newProgress,
-        });
-
-        console.log("Progress updated in Firestore successfully");
-
-        // Update local state immediately to reflect change
-        setGroup((prevGroup) => {
-          console.log(
-            "Updating local state from:",
-            prevGroup?.progress,
-            "to:",
-            newProgress
-          );
-          return {
-            ...(prevGroup || {}),
-            progress: newProgress,
-          };
-        });
-      } else {
-        console.log("Max progress already reached");
+        }));
       }
     } catch (error) {
       console.error("Error updating group progress:", error.message);
@@ -228,113 +275,267 @@ const GroupScreen = () => {
     }
   };
 
-  const renderMemberItem = ({ item }) => (
-    <View style={styles.memberItem}>
-      <Text style={styles.memberName}>{item.name}</Text>
-      {item.email && <Text style={styles.memberEmail}>{item.email}</Text>}
-    </View>
-  );
+  // Assign a background to a group
+  const assignBackgroundToGroup = async (groupId) => {
+    try {
+      const randomBackgroundId = Math.floor(Math.random() * 6) + 1;
+      await updateDoc(doc(db, "groups", groupId), {
+        backgroundId: randomBackgroundId,
+      });
+    } catch (error) {
+      console.error("Error assigning background:", error);
+    }
+  };
+
+  // Get the background image for this group
+  const getGroupBackground = () => {
+    // Check for backgroundId (new format)
+    if (group?.backgroundId && gardenBackgrounds[group.backgroundId]) {
+      return gardenBackgrounds[group.backgroundId];
+    }
+
+    // Check for gardenBackground (old format)
+    if (group?.gardenBackground) {
+      const match = group.gardenBackground.match(/(\d+)\.png$/);
+      if (match && match[1] && gardenBackgrounds[parseInt(match[1])]) {
+        return gardenBackgrounds[parseInt(match[1])];
+      }
+    }
+
+    return pixelSkyBackground; // Fallback
+  };
+
+  // Get the sprout image based on progress
+  const getSproutImageForProgress = (progress) => {
+    // Get background ID with fallback to 1
+    let backgroundId = 1;
+
+    if (group?.backgroundId) {
+      backgroundId = group.backgroundId;
+    } else if (group?.gardenBackground) {
+      const match = group.gardenBackground.match(/(\d+)\.png$/);
+      if (match && match[1]) {
+        backgroundId = parseInt(match[1]);
+      }
+    }
+
+    // Ensure valid range
+    backgroundId = Math.min(Math.max(backgroundId, 1), 6);
+
+    // Map progress to growth stage
+    const stage = Math.min(Math.max(progress + 1, 1), 6);
+
+    // At final stage, return tree matching background
+    if (stage === 6) {
+      return gardenSprouts[backgroundId];
+    }
+
+    // Otherwise return growth stage
+    return gardenSprouts[stage];
+  };
+
+  const renderMemberItem = ({ item }) => {
+    // Get plant image with fallback to default
+    const plantImage =
+      item.plantMatch && plants[item.plantMatch]
+        ? plants[item.plantMatch]
+        : plants.default;
+
+    return (
+      <View style={styles.memberBox}>
+        <View style={styles.plantImageContainer}>
+          <Image
+            source={plantImage}
+            style={styles.plantImage}
+            resizeMode="contain"
+          />
+        </View>
+        <Text style={styles.memberName} numberOfLines={1} ellipsizeMode="tail">
+          {item.name}
+        </Text>
+      </View>
+    );
+  };
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
-        <ActivityIndicator size="large" color="#007bff" />
-      </SafeAreaView>
+      <ImageBackground
+        source={pixelSkyBackground}
+        style={styles.backgroundImage}
+      >
+        <SafeAreaView style={styles.container}>
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#B87333" />
+            <Text style={styles.loadingText}>Loading group data...</Text>
+          </View>
+        </SafeAreaView>
+      </ImageBackground>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
+    <ImageBackground
+      source={getGroupBackground()}
+      style={styles.backgroundImage}
+    >
+      <SafeAreaView style={styles.container}>
         <Text style={styles.title}>{group?.name || "Group"}</Text>
-      </View>
 
-      <View style={styles.progressContainer}>
-        <Text style={styles.sectionTitle}>Progress</Text>
-        <View style={styles.progressTracker}>
-          {[...Array(5)].map((_, index) => (
-            <View
-              key={index}
-              style={[
-                styles.progressDot,
-                index < (group?.progress || 0) && styles.progressDotCompleted,
-              ]}
-            />
-          ))}
+        <View style={styles.questionContainer}>
+          <Text style={styles.sectionTitle}>Progress</Text>
+
+          <View style={styles.progressContainer}>
+            {/* Tree growth visualization */}
+            <View style={styles.treeFrameContainer}>
+              <View style={styles.treeFrame}>
+                <Image
+                  source={getSproutImageForProgress(group?.progress || 0)}
+                  style={styles.treeImage}
+                  resizeMode="contain"
+                />
+              </View>
+              <Text style={styles.gardenText}>Group Garden</Text>
+            </View>
+
+            {/* Dot progress tracker */}
+            <View style={styles.progressTrackerContainer}>
+              <Text style={styles.progressLabel}>Adventure Progress:</Text>
+              <View style={styles.progressTracker}>
+                {[...Array(5)].map((_, index) => (
+                  <View
+                    key={index}
+                    style={[
+                      styles.progressDot,
+                      index < (group?.progress || 0) &&
+                        styles.progressDotCompleted,
+                    ]}
+                  />
+                ))}
+              </View>
+              <Text style={styles.progressText}>
+                {group?.progress || 0}/5 Adventures Completed
+              </Text>
+            </View>
+          </View>
         </View>
-        <Text style={styles.progressText}>
-          {group?.progress || 0}/5 Adventures Completed
-        </Text>
-      </View>
 
-      <View style={styles.membersContainer}>
-        <Text style={styles.sectionTitle}>Members ({members.length})</Text>
-        <FlatList
-          data={members}
-          renderItem={renderMemberItem}
-          keyExtractor={(item) => item.id}
-          ListEmptyComponent={
-            <Text style={styles.emptyText}>No members in this group</Text>
-          }
-        />
-      </View>
+        <View style={styles.membersSection}>
+          <Text style={styles.sectionTitle}>Members ({members.length})</Text>
+          <FlatList
+            data={members}
+            renderItem={renderMemberItem}
+            keyExtractor={(item) => item.id}
+            numColumns={3}
+            columnWrapperStyle={styles.memberRow}
+            contentContainerStyle={styles.memberGrid}
+            ListEmptyComponent={
+              <Text style={styles.emptyText}>No members in this group</Text>
+            }
+          />
+        </View>
 
-      {!isMember ? (
-        <TouchableOpacity style={styles.joinButton} onPress={joinGroup}>
-          <Text style={styles.buttonText}>Join Group</Text>
-        </TouchableOpacity>
-      ) : (
-        <TouchableOpacity
-          style={styles.adventureButton}
-          onPress={startAdventure}
+        {!isMember ? (
+          <WoodenButton onPress={joinGroup} style={styles.joinButton}>
+            <Text style={styles.navButtonText}>Join Group</Text>
+          </WoodenButton>
+        ) : (
+          <WoodenButton onPress={startAdventure} style={styles.adventureButton}>
+            <Text style={styles.navButtonText}>Start Adventure</Text>
+          </WoodenButton>
+        )}
+
+        <WoodenButton
+          onPress={() => navigation.navigate("Home")}
+          style={styles.backButton}
         >
-          <Text style={styles.buttonText}>Start Adventure</Text>
-        </TouchableOpacity>
-      )}
-
-      <TouchableOpacity
-        style={styles.backButton}
-        onPress={() => navigation.navigate("Home")}
-      >
-        <Text style={styles.backButtonText}>Back to Groups</Text>
-      </TouchableOpacity>
-    </SafeAreaView>
+          <Text style={styles.navButtonText}>Back to Groups</Text>
+        </WoodenButton>
+      </SafeAreaView>
+    </ImageBackground>
   );
 };
 
 const styles = StyleSheet.create({
+  backgroundImage: {
+    flex: 1,
+    width: "100%",
+    height: "100%",
+  },
   container: {
     flex: 1,
-    backgroundColor: "#f5f5f5",
-    paddingTop: Platform.OS === "ios" ? 0 : 0,
-  },
-  header: {
     padding: 20,
-    backgroundColor: "#007bff",
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
     alignItems: "center",
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 18,
+    fontFamily: "monospace",
+    color: "#000",
   },
   title: {
-    fontSize: 24,
+    fontSize: 32,
     fontWeight: "bold",
-    color: "#fff",
+    textAlign: "center",
+    marginTop: 20,
+    marginBottom: 20,
+    fontFamily: "monospace",
+    color: "#000",
   },
-  progressContainer: {
-    margin: 20,
-    backgroundColor: "#fff",
-    borderRadius: 10,
+  questionContainer: {
+    backgroundColor: "rgba(255, 255, 255, 0.85)",
+    borderWidth: 4,
+    borderColor: "#B87333",
+    borderStyle: "solid",
     padding: 20,
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    marginBottom: 20,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: "600",
+    fontSize: 20,
+    fontWeight: "bold",
     marginBottom: 15,
-    alignSelf: "flex-start",
+    fontFamily: "monospace",
+    color: "#000",
+  },
+  progressContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginVertical: 10,
+  },
+  treeFrameContainer: {
+    width: 140,
+    alignItems: "center",
+  },
+  treeFrame: {
+    width: 120,
+    height: 150,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#F5DEB3",
+    borderWidth: 4,
+    borderColor: "#B87333",
+    padding: 5,
+    marginBottom: 5,
+  },
+  treeImage: {
+    width: "100%",
+    height: "100%",
+  },
+  gardenText: {
+    fontSize: 12,
+    fontFamily: "monospace",
+    fontWeight: "bold",
+    textAlign: "center",
+    color: "#000",
+  },
+  progressTrackerContainer: {
+    flex: 1,
+    alignItems: "center",
+    marginLeft: 15,
   },
   progressTracker: {
     flexDirection: "row",
@@ -345,82 +546,129 @@ const styles = StyleSheet.create({
   progressDot: {
     width: 20,
     height: 20,
-    borderRadius: 10,
     backgroundColor: "#e0e0e0",
-    borderWidth: 1,
-    borderColor: "#ccc",
+    borderWidth: 2,
+    borderColor: "#B87333",
   },
   progressDotCompleted: {
-    backgroundColor: "#4CAF50",
-    borderColor: "#388E3C",
+    backgroundColor: "#90EE90", // Light green
+    borderColor: "#B87333",
   },
   progressText: {
     marginTop: 10,
     fontSize: 16,
-    color: "#666",
+    color: "#000",
+    fontFamily: "monospace",
   },
-  membersContainer: {
-    margin: 20,
-    flex: 1,
+  progressLabel: {
+    fontSize: 14,
+    fontFamily: "monospace",
+    fontWeight: "bold",
+    marginBottom: 5,
+    color: "#000",
   },
-  memberItem: {
-    backgroundColor: "#fff",
-    borderRadius: 10,
-    padding: 15,
-    marginBottom: 10,
+  // Button styles
+  buttonOuterContainer: {
+    width: "100%",
+    marginBottom: 15,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 1,
+    shadowOffset: { width: 2, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 0,
+  },
+  buttonTopBorder: {
+    height: 5,
+    backgroundColor: "#B87333",
+    width: "100%",
+  },
+  buttonContainer: {
+    flexDirection: "row",
+    width: "100%",
+    overflow: "hidden",
+  },
+  buttonLeftBorder: {
+    width: 5,
+    backgroundColor: "#B87333",
+  },
+  buttonRightBorder: {
+    width: 5,
+    backgroundColor: "#B87333",
+  },
+  buttonBottomBorder: {
+    height: 5,
+    backgroundColor: "#B87333",
+  },
+  navButton: {
+    flex: 1,
+    padding: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#F5DEB3",
+  },
+  joinButton: {
+    backgroundColor: "#87CEFA", // Light sky blue
+  },
+  adventureButton: {
+    backgroundColor: "#90EE90", // Light green
+  },
+  backButton: {
+    backgroundColor: "#F5DEB3", // Wheat color
+  },
+  navButtonText: {
+    color: "#000",
+    fontSize: 16,
+    fontWeight: "bold",
+    fontFamily: "monospace",
+  },
+  // Member list styles
+  membersSection: {
+    flex: 1,
+    marginBottom: 20,
+  },
+  memberRow: {
+    justifyContent: "space-evenly",
+    marginBottom: 10,
+  },
+  memberGrid: {
+    paddingVertical: 10,
+  },
+  memberBox: {
+    width: "30%",
+    aspectRatio: 1,
+    backgroundColor: "#F5DEB3",
+    borderWidth: 3,
+    borderColor: "#B87333",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 5,
+    shadowColor: "#000",
+    shadowOffset: { width: 2, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 0,
+  },
+  plantImageContainer: {
+    flex: 1,
+    width: "100%",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  plantImage: {
+    width: "80%",
+    height: "80%",
   },
   memberName: {
-    fontSize: 16,
-    fontWeight: "500",
-  },
-  memberEmail: {
     fontSize: 14,
-    color: "#666",
-    marginTop: 4,
+    fontWeight: "500",
+    fontFamily: "monospace",
+    color: "#000",
+    textAlign: "center",
+    paddingTop: 5,
   },
   emptyText: {
     textAlign: "center",
-    color: "#666",
+    color: "#333",
     marginTop: 20,
-  },
-  joinButton: {
-    margin: 20,
-    backgroundColor: "#2196F3",
-    padding: 15,
-    borderRadius: 5,
-    alignItems: "center",
-  },
-  adventureButton: {
-    margin: 20,
-    backgroundColor: "#4CAF50",
-    padding: 15,
-    borderRadius: 5,
-    alignItems: "center",
-  },
-  buttonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "500",
-  },
-  backButton: {
-    marginHorizontal: 20,
-    marginBottom: 20,
-    backgroundColor: "#f5f5f5",
-    padding: 15,
-    borderRadius: 5,
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#ddd",
-  },
-  backButtonText: {
-    color: "#666",
-    fontSize: 16,
-    fontWeight: "500",
+    fontFamily: "monospace",
   },
 });
 

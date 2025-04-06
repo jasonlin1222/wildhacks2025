@@ -11,11 +11,31 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  ImageBackground,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { useAuth } from "../context/AuthContext";
 import { collection, addDoc } from "firebase/firestore";
 import { db } from "../config/firebase";
+
+// Import background
+const pixelSkyBackground = require("./pixel-sky.png");
+
+// Number of available garden backgrounds
+const TOTAL_BACKGROUNDS = 6;
+
+// Helper for rendering wooden-bordered containers (inputs and buttons)
+const WoodenContainer = ({ children, style }) => (
+  <View style={[styles.buttonOuterContainer, style]}>
+    <View style={styles.buttonTopBorder} />
+    <View style={styles.buttonContainer}>
+      <View style={styles.buttonLeftBorder} />
+      {children}
+      <View style={styles.buttonRightBorder} />
+    </View>
+    <View style={styles.buttonBottomBorder} />
+  </View>
+);
 
 const CreateGroupScreen = () => {
   const navigation = useNavigation();
@@ -34,6 +54,10 @@ const CreateGroupScreen = () => {
     try {
       setLoading(true);
 
+      // Randomly select a garden background (1-6)
+      const randomBackgroundId =
+        Math.floor(Math.random() * TOTAL_BACKGROUNDS) + 1;
+
       // Create a new group document
       const groupData = {
         name: groupName.trim(),
@@ -41,7 +65,8 @@ const CreateGroupScreen = () => {
         members: [currentUser.uid],
         createdBy: currentUser.uid,
         createdAt: new Date(),
-        progress: 0, // Initial progress is 0
+        progress: 0,
+        backgroundId: randomBackgroundId,
       };
 
       const groupRef = await addDoc(collection(db, "groups"), groupData);
@@ -62,139 +87,175 @@ const CreateGroupScreen = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        style={styles.keyboardAvoidingContainer}
-      >
-        <ScrollView contentContainerStyle={styles.scrollContainer}>
-          <View style={styles.header}>
+    <ImageBackground source={pixelSkyBackground} style={styles.backgroundImage}>
+      <SafeAreaView style={styles.container}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={styles.keyboardAvoidingContainer}
+        >
+          <ScrollView contentContainerStyle={styles.scrollContainer}>
             <Text style={styles.title}>Create New Group</Text>
-          </View>
 
-          <View style={styles.formContainer}>
-            <Text style={styles.label}>Group Name*</Text>
-            <TextInput
-              style={styles.input}
-              value={groupName}
-              onChangeText={setGroupName}
-              placeholder="Enter group name"
-              placeholderTextColor="#999"
-            />
+            <View style={styles.questionContainer}>
+              <Text style={styles.label}>Group Name*</Text>
+              <WoodenContainer>
+                <TextInput
+                  style={styles.input}
+                  value={groupName}
+                  onChangeText={setGroupName}
+                  placeholder="Enter group name"
+                  placeholderTextColor="#999"
+                />
+              </WoodenContainer>
 
-            <Text style={styles.label}>Description</Text>
-            <TextInput
-              style={[styles.input, styles.textArea]}
-              value={description}
-              onChangeText={setDescription}
-              placeholder="Enter group description"
-              placeholderTextColor="#999"
-              multiline
-              numberOfLines={4}
-            />
+              <Text style={styles.label}>Description</Text>
+              <WoodenContainer>
+                <TextInput
+                  style={[styles.input, styles.textArea]}
+                  value={description}
+                  onChangeText={setDescription}
+                  placeholder="Enter group description"
+                  placeholderTextColor="#999"
+                  multiline
+                  numberOfLines={4}
+                />
+              </WoodenContainer>
 
-            <TouchableOpacity
-              style={styles.createButton}
-              onPress={handleCreateGroup}
-              disabled={loading}
-            >
-              {loading ? (
-                <ActivityIndicator color="#fff" size="small" />
-              ) : (
-                <Text style={styles.buttonText}>Create Group</Text>
-              )}
-            </TouchableOpacity>
+              <WoodenContainer style={styles.buttonMargin}>
+                <TouchableOpacity
+                  style={[styles.navButton, styles.nextButton]}
+                  onPress={handleCreateGroup}
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <ActivityIndicator color="#fff" size="small" />
+                  ) : (
+                    <Text style={styles.navButtonText}>Create Group</Text>
+                  )}
+                </TouchableOpacity>
+              </WoodenContainer>
 
-            <TouchableOpacity
-              style={styles.cancelButton}
-              onPress={() => navigation.goBack()}
-              disabled={loading}
-            >
-              <Text style={styles.cancelButtonText}>Cancel</Text>
-            </TouchableOpacity>
-          </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+              <WoodenContainer>
+                <TouchableOpacity
+                  style={[styles.navButton, styles.backButton]}
+                  onPress={() => navigation.goBack()}
+                  disabled={loading}
+                >
+                  <Text style={styles.navButtonText}>Cancel</Text>
+                </TouchableOpacity>
+              </WoodenContainer>
+            </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    </ImageBackground>
   );
 };
 
 const styles = StyleSheet.create({
+  backgroundImage: {
+    flex: 1,
+    width: "100%",
+    height: "100%",
+  },
   container: {
     flex: 1,
-    backgroundColor: "#f5f5f5",
   },
   keyboardAvoidingContainer: {
     flex: 1,
   },
   scrollContainer: {
     flexGrow: 1,
-  },
-  header: {
     padding: 20,
-    backgroundColor: "#007bff",
-    alignItems: "center",
+    paddingBottom: 40,
   },
   title: {
-    fontSize: 24,
+    fontSize: 32,
     fontWeight: "bold",
-    color: "#fff",
+    textAlign: "center",
+    marginTop: 20,
+    marginBottom: 10,
+    fontFamily: "monospace",
+    color: "#000",
   },
-  formContainer: {
-    margin: 20,
-    backgroundColor: "#fff",
-    borderRadius: 10,
+  questionContainer: {
+    backgroundColor: "rgba(255, 255, 255, 0.85)",
+    borderWidth: 4,
+    borderColor: "#B87333",
+    borderStyle: "solid",
     padding: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    marginBottom: 20,
   },
   label: {
-    fontSize: 16,
-    fontWeight: "500",
-    marginBottom: 8,
+    fontSize: 18,
+    fontWeight: "600",
+    marginBottom: 12,
+    fontFamily: "monospace",
     color: "#333",
   },
-  input: {
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 5,
-    padding: 15,
-    fontSize: 16,
-    backgroundColor: "#fafafa",
+  // Wooden border styles
+  buttonOuterContainer: {
+    width: "100%",
     marginBottom: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 2, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 0,
+  },
+  buttonTopBorder: {
+    height: 5,
+    backgroundColor: "#B87333",
+    width: "100%",
+  },
+  buttonContainer: {
+    flexDirection: "row",
+    width: "100%",
+    overflow: "hidden",
+  },
+  buttonLeftBorder: {
+    width: 5,
+    backgroundColor: "#B87333",
+  },
+  buttonRightBorder: {
+    width: 5,
+    backgroundColor: "#B87333",
+  },
+  buttonBottomBorder: {
+    height: 5,
+    backgroundColor: "#B87333",
+  },
+  buttonMargin: {
+    marginBottom: 15,
+  },
+  input: {
+    flex: 1,
+    padding: 12,
+    backgroundColor: "#F5DEB3",
+    fontSize: 16,
+    fontFamily: "monospace",
+    color: "#000",
   },
   textArea: {
     height: 100,
     textAlignVertical: "top",
   },
-  createButton: {
-    backgroundColor: "#4CAF50",
-    padding: 15,
-    borderRadius: 5,
+  navButton: {
+    flex: 1,
+    padding: 12,
     alignItems: "center",
-    marginTop: 10,
+    justifyContent: "center",
   },
-  buttonText: {
-    color: "#fff",
+  nextButton: {
+    backgroundColor: "#90EE90", // Light green
+  },
+  backButton: {
+    backgroundColor: "#F5DEB3", // Wheat color
+  },
+  navButtonText: {
+    color: "#000",
     fontSize: 16,
-    fontWeight: "500",
-  },
-  cancelButton: {
-    marginTop: 15,
-    padding: 15,
-    borderRadius: 5,
-    alignItems: "center",
-    backgroundColor: "#f5f5f5",
-    borderWidth: 1,
-    borderColor: "#ddd",
-  },
-  cancelButtonText: {
-    color: "#666",
-    fontSize: 16,
-    fontWeight: "500",
+    fontWeight: "bold",
+    fontFamily: "monospace",
   },
 });
 
