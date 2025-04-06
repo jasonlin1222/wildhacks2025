@@ -144,17 +144,18 @@ const plantData = {
 };
 
 export default function PlantAssignmentScreen({ route, navigation }) {
-  const { plantMatch } = route.params;
+  const { plantMatch, personalityCategory } = route.params; // Add personalityCategory
   const plant = plantData[plantMatch] || {
     name: "Mystery Plant",
-    image: require('./plants/default-plant.gif'), // Make sure to have a default image
+    image: require('./plants/default-plant.gif'),
     description: "A rare and unique plant that matches your personality. Its special qualities will be revealed soon!"
   };
 
   const handleContinue = () => {
-    // Navigate to account creation with the plant match
+    // Navigate to account creation with the plant match and personality category
     navigation.navigate("CreateAccount", { 
-      plantMatch: plantMatch
+      plantMatch: plantMatch,
+      personalityCategory: personalityCategory
     });
   };
 

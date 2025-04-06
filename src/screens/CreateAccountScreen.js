@@ -17,7 +17,7 @@ import { useAuth } from "../context/AuthContext";
 const pixelSkyBackground = require('./pixel-sky.png');
 
 export default function CreateAccountScreen({ route, navigation }) {
-  const { plantMatch } = route.params || {};
+  const { plantMatch, personalityCategory } = route.params || {};
 
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
@@ -69,15 +69,31 @@ export default function CreateAccountScreen({ route, navigation }) {
   
     setLoading(true);
     try {
-      // Create Firebase account with the plantMatch included directly
+      // Create a personality categories object with all categories as false
+      const personalityCategories = {
+        mysterious: false,
+        intellectual: false,
+        nurturing: false,
+        social: false,
+        adventurous: false,
+        artistic: false
+      };
+
+      // Set the matched category to true
+      if (personalityCategory) {
+        personalityCategories[personalityCategory] = true;
+      }
+      
+      // Create Firebase account with the plantMatch and personality categories
       const user = await signup(email, password, {
         username,
         plantMatch,
         surveyCompleted: true,
+        // Add the personality categories
+        personalityCategories: personalityCategories
       });
-  
-      // Navigation to home is handled by AppNavigator in App.js
       console.log("Account created with plant match:", plantMatch);
+      console.log("Personality category:", personalityCategory);
     } catch (error) {
       Alert.alert("Error", error.message);
     } finally {
