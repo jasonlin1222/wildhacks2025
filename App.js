@@ -10,6 +10,7 @@ import LoginScreen from "./src/screens/LoginScreen";
 import OnboardingSurveyScreen from "./src/screens/OnboardingSurveyScreen";
 import CreateAccountScreen from "./src/screens/CreateAccountScreen";
 import HomeScreen from "./src/screens/HomeScreen";
+import TripPlannerScreen from "./src/screens/TripPlannerScreen";
 
 // Import auth context
 import { AuthProvider, useAuth } from "./src/context/AuthContext";
@@ -42,6 +43,7 @@ function PrivateStack() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Home" component={HomeScreen} />
+      <Stack.Screen name="TripPlanner" component={TripPlannerScreen} />
     </Stack.Navigator>
   );
 }
