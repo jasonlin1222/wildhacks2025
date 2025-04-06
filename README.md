@@ -2,6 +2,12 @@
 
 This is a repository for the Wildhacks 2025 project.
 
+## Project Description
+
+Garden Quest
+A adventure app that matches you with a virtual plant based on your personality, connects you with people, and guides you through a real life D&D styled adventure.
+It's time to touch grass :)
+
 ## Setup
 
 ```
@@ -9,16 +15,10 @@ npm install
 npm start
 ```
 
-## Environment Variables
+## Libaries and APIs used
 
-using `.env`
-
-```
-FIREBASE_API_KEY=
-FIREBASE_AUTH_DOMAIN=
-FIREBASE_PROJECT_ID=
-FIREBASE_STORAGE_BUCKET=
-FIREBASE_MESSAGING_SENDER_ID=
-FIREBASE_APP_ID=
-FIREBASE_MEASUREMENT_ID=
-```
+- React Native
+- Expo
+- Firebase
+- Google Gemini
+- Geoapify API
