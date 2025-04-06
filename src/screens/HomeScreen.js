@@ -8,9 +8,11 @@ import {
   ScrollView,
 } from "react-native";
 import { useAuth } from "../context/AuthContext";
+import { useNavigation } from "@react-navigation/native";
 
 export default function HomeScreen() {
   const { userProfile, logout, currentUser } = useAuth();
+  const navigation = useNavigation();
 
   const handleLogout = async () => {
     try {
@@ -19,6 +21,10 @@ export default function HomeScreen() {
     } catch (error) {
       console.error("Logout failed", error);
     }
+  };
+
+  const handleTripPlanner = () => {
+    navigation.navigate("TripPlanner");
   };
 
   return (
@@ -66,6 +72,13 @@ export default function HomeScreen() {
             This is a sample home screen. In a real application, this would
             display content relevant to the user.
           </Text>
+
+          <TouchableOpacity
+            style={styles.tripPlannerButton}
+            onPress={handleTripPlanner}
+          >
+            <Text style={styles.tripPlannerButtonText}>Plan My Trip</Text>
+          </TouchableOpacity>
         </View>
 
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
@@ -143,6 +156,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   logoutButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "500",
+  },
+  tripPlannerButton: {
+    margin: 20,
+    backgroundColor: "#4CAF50",
+    padding: 15,
+    borderRadius: 5,
+    alignItems: "center",
+  },
+  tripPlannerButtonText: {
     color: "#fff",
     fontSize: 16,
     fontWeight: "500",
