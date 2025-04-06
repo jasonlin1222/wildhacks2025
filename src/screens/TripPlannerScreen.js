@@ -19,7 +19,7 @@ import MapView, { Marker } from "react-native-maps";
 const GEOAPIFY_API_KEY = process.env.GEOAPIFY_API_KEY;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
-const TripPlannerScreen = ({ navigation }) => {
+const TripPlannerScreen = ({ navigation, route }) => {
   const [location, setLocation] = useState(null);
   const [errorMsg, setErrorMsg] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -32,6 +32,8 @@ const TripPlannerScreen = ({ navigation }) => {
   const [currentSideQuest, setCurrentSideQuest] = useState(null);
   const [sideQuestPoints, setSideQuestPoints] = useState(0);
   const [allQuestsCompleted, setAllQuestsCompleted] = useState(false);
+  // Get the group ID from route params
+  const groupId = route.params?.groupId;
 
   useEffect(() => {
     (async () => {
@@ -397,12 +399,27 @@ const TripPlannerScreen = ({ navigation }) => {
 
   const finishTrip = () => {
     const isSuccessful = sideQuestPoints >= 5;
-    // Navigate back to home screen with completion status
-    navigation.navigate("Home", {
-      tripCompleted: true,
-      tripSuccess: isSuccessful,
-      tripPoints: sideQuestPoints,
-    });
+    console.log(
+      "Finishing trip: success=",
+      isSuccessful,
+      "points=",
+      sideQuestPoints,
+      "groupId=",
+      groupId
+    );
+
+    if (groupId) {
+      // Navigate directly to the GroupScreen with parameters
+      navigation.navigate("GroupScreen", {
+        groupId,
+        tripCompleted: true,
+        tripSuccess: isSuccessful,
+        tripPoints: sideQuestPoints,
+        timestamp: Date.now(), // Add timestamp to ensure params are seen as new
+      });
+    } else {
+      navigation.navigate("Home");
+    }
   };
 
   console.log(tripPlan);
@@ -602,7 +619,9 @@ const TripPlannerScreen = ({ navigation }) => {
           </Text>
 
           <TouchableOpacity style={styles.finishButton} onPress={finishTrip}>
-            <Text style={styles.finishButtonText}>Return to Home</Text>
+            <Text style={styles.finishButtonText}>
+              {groupId ? "Return to Group" : "Return to Home"}
+            </Text>
           </TouchableOpacity>
         </View>
       )}
@@ -614,6 +633,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
+    paddingTop: Platform.OS === "ios" ? 60 : 40,
     backgroundColor: "#fff",
   },
   title: {

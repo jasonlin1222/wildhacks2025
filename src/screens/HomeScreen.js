@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   StyleSheet,
   View,
@@ -6,13 +6,48 @@ import {
   TouchableOpacity,
   SafeAreaView,
   ScrollView,
+  FlatList,
+  ActivityIndicator,
 } from "react-native";
 import { useAuth } from "../context/AuthContext";
 import { useNavigation } from "@react-navigation/native";
+import {
+  collection,
+  getDocs,
+  query,
+  where,
+  doc,
+  updateDoc,
+  arrayUnion,
+} from "firebase/firestore";
+import { db } from "../config/firebase";
 
 export default function HomeScreen() {
   const { userProfile, logout, currentUser } = useAuth();
   const navigation = useNavigation();
+  const [groups, setGroups] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchGroups();
+  }, []);
+
+  const fetchGroups = async () => {
+    try {
+      setLoading(true);
+      const groupsCollection = collection(db, "groups");
+      const groupsSnapshot = await getDocs(groupsCollection);
+      const groupsList = groupsSnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setGroups(groupsList);
+    } catch (error) {
+      console.error("Error fetching groups:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleLogout = async () => {
     try {
@@ -23,68 +58,86 @@ export default function HomeScreen() {
     }
   };
 
-  const handleTripPlanner = () => {
-    navigation.navigate("TripPlanner");
+  const handleCreateGroup = () => {
+    navigation.navigate("CreateGroup");
   };
+
+  const handleJoinGroup = (groupId) => {
+    navigation.navigate("GroupScreen", { groupId });
+  };
+
+  const renderGroupItem = ({ item }) => (
+    <TouchableOpacity
+      style={styles.groupItem}
+      onPress={() => handleJoinGroup(item.id)}
+    >
+      <Text style={styles.groupName}>{item.name}</Text>
+      <Text style={styles.memberCount}>
+        {item.members ? item.members.length : 0} members
+      </Text>
+    </TouchableOpacity>
+  );
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView>
-        <View style={styles.header}>
-          <Text style={styles.title}>Welcome Home</Text>
-          {userProfile?.name && (
-            <Text style={styles.subtitle}>{userProfile.name}</Text>
-          )}
+      <View style={styles.header}>
+        <Text style={styles.title}>Groups</Text>
+        {userProfile?.name && (
+          <Text style={styles.subtitle}>Welcome, {userProfile.name}</Text>
+        )}
+      </View>
+
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>Your Profile</Text>
+
+        <View style={styles.profileItem}>
+          <Text style={styles.label}>Email:</Text>
+          <Text style={styles.value}>
+            {currentUser?.email || "Not provided"}
+          </Text>
         </View>
 
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Your Profile</Text>
-
+        {userProfile?.age && (
           <View style={styles.profileItem}>
-            <Text style={styles.label}>Email:</Text>
-            <Text style={styles.value}>
-              {currentUser?.email || "Not provided"}
-            </Text>
+            <Text style={styles.label}>Age:</Text>
+            <Text style={styles.value}>{userProfile.age}</Text>
           </View>
+        )}
 
-          {userProfile?.age && (
-            <View style={styles.profileItem}>
-              <Text style={styles.label}>Age:</Text>
-              <Text style={styles.value}>{userProfile.age}</Text>
-            </View>
-          )}
+        {userProfile?.interests && (
+          <View style={styles.profileItem}>
+            <Text style={styles.label}>Interests:</Text>
+            <Text style={styles.value}>{userProfile.interests}</Text>
+          </View>
+        )}
+      </View>
 
-          {userProfile?.interests && (
-            <View style={styles.profileItem}>
-              <Text style={styles.label}>Interests:</Text>
-              <Text style={styles.value}>{userProfile.interests}</Text>
-            </View>
-          )}
-        </View>
+      <View style={styles.groupsContainer}>
+        <Text style={styles.sectionTitle}>Available Groups</Text>
+        {loading ? (
+          <ActivityIndicator size="large" color="#007bff" />
+        ) : (
+          <FlatList
+            data={groups}
+            renderItem={renderGroupItem}
+            keyExtractor={(item) => item.id}
+            ListEmptyComponent={
+              <Text style={styles.emptyText}>No groups available</Text>
+            }
+          />
+        )}
+      </View>
 
-        <View style={styles.content}>
-          <Text style={styles.paragraph}>
-            Thank you for completing the onboarding survey. Your experience is
-            now personalized based on your preferences.
-          </Text>
+      <TouchableOpacity
+        style={styles.createGroupButton}
+        onPress={handleCreateGroup}
+      >
+        <Text style={styles.createGroupButtonText}>Create New Group</Text>
+      </TouchableOpacity>
 
-          <Text style={styles.paragraph}>
-            This is a sample home screen. In a real application, this would
-            display content relevant to the user.
-          </Text>
-
-          <TouchableOpacity
-            style={styles.tripPlannerButton}
-            onPress={handleTripPlanner}
-          >
-            <Text style={styles.tripPlannerButtonText}>Plan My Trip</Text>
-          </TouchableOpacity>
-        </View>
-
-        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-          <Text style={styles.logoutButtonText}>Log Out</Text>
-        </TouchableOpacity>
-      </ScrollView>
+      <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+        <Text style={styles.logoutButtonText}>Log Out</Text>
+      </TouchableOpacity>
     </SafeAreaView>
   );
 }
@@ -139,35 +192,61 @@ const styles = StyleSheet.create({
     fontSize: 16,
     flex: 1,
   },
-  content: {
+  groupsContainer: {
     margin: 20,
+    flex: 1,
   },
-  paragraph: {
-    fontSize: 16,
-    lineHeight: 24,
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "600",
     marginBottom: 15,
-    color: "#444",
   },
-  logoutButton: {
-    margin: 20,
-    backgroundColor: "#f44336",
+  groupItem: {
+    backgroundColor: "#fff",
+    borderRadius: 10,
     padding: 15,
-    borderRadius: 5,
-    alignItems: "center",
+    marginBottom: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 1,
   },
-  logoutButtonText: {
-    color: "#fff",
-    fontSize: 16,
+  groupName: {
+    fontSize: 17,
     fontWeight: "500",
   },
-  tripPlannerButton: {
+  memberCount: {
+    fontSize: 14,
+    color: "#666",
+    marginTop: 5,
+  },
+  emptyText: {
+    textAlign: "center",
+    color: "#666",
+    marginTop: 20,
+  },
+  createGroupButton: {
     margin: 20,
     backgroundColor: "#4CAF50",
     padding: 15,
     borderRadius: 5,
     alignItems: "center",
   },
-  tripPlannerButtonText: {
+  createGroupButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "500",
+  },
+  logoutButton: {
+    marginHorizontal: 20,
+    marginBottom: 20,
+    backgroundColor: "#f44336",
+    padding: 15,
+    borderRadius: 5,
+    alignItems: "center",
+  },
+  logoutButtonText: {
     color: "#fff",
     fontSize: 16,
     fontWeight: "500",

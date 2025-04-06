@@ -12,6 +12,8 @@ import CreateAccountScreen from "./src/screens/CreateAccountScreen";
 import HomeScreen from "./src/screens/HomeScreen";
 import PlantAssignmentScreen from "./src/screens/PlantAssignmentScreen";
 import TripPlannerScreen from "./src/screens/TripPlannerScreen";
+import GroupScreen from "./src/screens/GroupScreen";
+import CreateGroupScreen from "./src/screens/CreateGroupScreen";
 
 // Import auth context
 import { AuthProvider, useAuth } from "./src/context/AuthContext";
@@ -45,6 +47,8 @@ function PrivateStack() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Home" component={HomeScreen} />
+      <Stack.Screen name="GroupScreen" component={GroupScreen} />
+      <Stack.Screen name="CreateGroup" component={CreateGroupScreen} />
       <Stack.Screen name="TripPlanner" component={TripPlannerScreen} />
     </Stack.Navigator>
   );
